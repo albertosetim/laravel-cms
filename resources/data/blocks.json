@@ -1,0 +1,98 @@
+{
+    "blocks": {
+        "faq": {
+            "key": "faq",
+            "view": "cms.blocks.faq",
+            "plugin": null,
+            "label": "FAQ",
+            "icon": "heroicon-o-question-mark-circle",
+            "fields": [
+                {
+                    "name": "heading",
+                    "type": "text",
+                    "label": "T\u00edtulo da sec\u00e7\u00e3o",
+                    "default": "FAQ"
+                },
+                {
+                    "name": "items",
+                    "type": "repeater",
+                    "fields": [
+                        {
+                            "name": "question",
+                            "type": "text",
+                            "label": "Pergunta",
+                            "required": true
+                        },
+                        {
+                            "name": "answer",
+                            "type": "textarea",
+                            "label": "Resposta",
+                            "required": true
+                        }
+                    ],
+                    "label": "Perguntas"
+                }
+            ]
+        },
+        "hero": {
+            "key": "hero",
+            "view": "cms.blocks.hero",
+            "plugin": null,
+            "label": "Hero",
+            "icon": "heroicon-o-photo",
+            "fields": [
+                {
+                    "name": "title",
+                    "type": "text",
+                    "label": "T\u00edtulo",
+                    "required": true
+                },
+                {
+                    "name": "subtitle",
+                    "type": "text",
+                    "label": "Subt\u00edtulo"
+                },
+                {
+                    "name": "cta",
+                    "type": "link",
+                    "label": "Call to action"
+                }
+            ]
+        },
+        "image": {
+            "key": "image",
+            "view": "cms.blocks.image",
+            "plugin": null,
+            "label": "Imagem",
+            "icon": "heroicon-o-camera",
+            "fields": [
+                {
+                    "name": "image",
+                    "type": "media",
+                    "label": "Imagem",
+                    "required": true
+                },
+                {
+                    "name": "caption",
+                    "type": "text",
+                    "label": "Legenda"
+                }
+            ]
+        },
+        "richtext": {
+            "key": "richtext",
+            "view": "cms.blocks.richtext",
+            "plugin": null,
+            "label": "Texto",
+            "icon": "heroicon-o-document-text",
+            "fields": [
+                {
+                    "name": "content",
+                    "type": "richtext",
+                    "label": "Conte\u00fado",
+                    "required": true
+                }
+            ]
+        }
+    }
+}

@@ -3,21 +3,22 @@
 namespace App\Services\Cms;
 
 use App\Models\Cms\Page;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * Árvore de páginas em memória + lookup de paths, ambas cacheadas por locale.
- * A resolução de um request é um array access, não uma travessia (03-arvore).
+ * Árvore de páginas + lookup de paths, cacheadas por locale. No cache vivem
+ * SÓ arrays puros (nunca models serializados) — a resolução de um request é
+ * um array access, não uma travessia (03-arvore).
  */
 class PageTree
 {
     /** @return array<string, int> path => page_id (páginas publicadas) */
     public function pathLookup(string $locale): array
     {
-        return Cache::rememberForever("cms.paths.{$locale}", function () use ($locale) {
-            return $this->buildLookup($locale, publishedOnly: true);
-        });
+        return Cache::rememberForever(
+            "cms.paths.{$locale}",
+            fn () => $this->buildLookup($locale, publishedOnly: true),
+        );
     }
 
     /** Lookup incluindo rascunhos — usada pelo preview assinado. */
@@ -27,8 +28,8 @@ class PageTree
     }
 
     /**
-     * Árvore aninhada do locale para navegação/menus:
-     * [['page' => Page, 'children' => [...]], ...]
+     * Árvore aninhada (publicadas) para navegação/menus. Nós são arrays:
+     * ['id', 'name', 'slug', 'path', 'show_in_menu', 'children' => [...]]
      */
     public function tree(string $locale): array
     {
@@ -36,11 +37,11 @@ class PageTree
             $pages = Page::query()
                 ->where('locale', $locale)
                 ->where('status', Page::STATUS_PUBLISHED)
-                ->orderBy('parent_id')
                 ->orderBy('position')
-                ->get();
+                ->get(['id', 'name', 'slug', 'parent_id', 'show_in_menu'])
+                ->groupBy(fn (Page $page) => $page->parent_id ?? 0);
 
-            return $this->nest($pages, null);
+            return $this->nest($pages, 0, '');
         });
     }
 
@@ -60,15 +61,16 @@ class PageTree
             $query->where('status', Page::STATUS_PUBLISHED);
         }
 
-        $pages = $query->get(['id', 'slug', 'parent_id']);
-        $byParent = $pages->groupBy('parent_id');
+        $byParent = $query
+            ->get(['id', 'slug', 'parent_id'])
+            ->groupBy(fn (Page $page) => $page->parent_id ?? 0);
 
         $lookup = [];
-        $walk = function (?int $parentId, string $prefix) use (&$walk, $byParent, &$lookup) {
-            foreach ($byParent->get($parentId ?? '', collect()) as $page) {
+        $walk = function (int $parentId, string $prefix) use (&$walk, $byParent, &$lookup) {
+            foreach ($byParent->get($parentId, collect()) as $page) {
                 $path = ltrim($prefix.'/'.$page->slug, '/');
 
-                if ($parentId === null && $page->slug === config('cms.home_slug')) {
+                if ($parentId === 0 && $page->slug === config('cms.home_slug')) {
                     $lookup[''] = $page->id;
                 } else {
                     $lookup[$path] = $page->id;
@@ -77,20 +79,29 @@ class PageTree
                 $walk($page->id, $path);
             }
         };
-        $walk(null, '');
+        $walk(0, '');
 
         return $lookup;
     }
 
-    private function nest(Collection $pages, ?int $parentId): array
+    private function nest($byParent, int $parentId, string $prefix): array
     {
-        return $pages
-            ->where('parent_id', $parentId)
-            ->map(fn (Page $page) => [
-                'page' => $page,
-                'children' => $this->nest($pages, $page->id),
-            ])
-            ->values()
-            ->all();
+        $nodes = [];
+
+        foreach ($byParent->get($parentId, collect()) as $page) {
+            $isHome = $parentId === 0 && $page->slug === config('cms.home_slug');
+            $path = $isHome ? '' : ltrim($prefix.'/'.$page->slug, '/');
+
+            $nodes[] = [
+                'id' => $page->id,
+                'name' => $page->name,
+                'slug' => $page->slug,
+                'path' => $path,
+                'show_in_menu' => (bool) $page->show_in_menu,
+                'children' => $this->nest($byParent, $page->id, $path),
+            ];
+        }
+
+        return $nodes;
     }
 }

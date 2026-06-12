@@ -10,6 +10,7 @@ use App\View\Components\Cms\Blocks;
 use App\View\Components\Cms\Field;
 use App\View\Components\Cms\Repeater;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -25,6 +26,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Gate::policy(\App\Models\Cms\Page::class, \App\Policies\Cms\PagePolicy::class);
+        Gate::policy(\App\Models\Cms\ContentType::class, \App\Policies\Cms\ContentTypePolicy::class);
+        Gate::policy(\App\Models\Cms\Entry::class, \App\Policies\Cms\EntryPolicy::class);
+
         Blade::component('cms.blocks', Blocks::class);
         Blade::component('cms.block', Block::class);
         Blade::component('cms.field', Field::class);

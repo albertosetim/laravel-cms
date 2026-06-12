@@ -26,9 +26,9 @@
         <nav class="mx-auto flex max-w-5xl items-center gap-6 px-6 py-4">
             <a href="{{ url('/'.$page->locale) }}" class="font-bold">{{ config('app.name') }}</a>
             @foreach (app(\App\Services\Cms\PageTree::class)->tree($page->locale) as $node)
-                @if ($node['page']->show_in_menu)
-                    <a href="{{ url('/'.$page->locale.'/'.$node['page']->path()) }}"
-                       class="text-sm text-slate-600 hover:text-slate-900">{{ $node['page']->name }}</a>
+                @if ($node['show_in_menu'])
+                    <a href="{{ url('/'.$page->locale.($node['path'] !== '' ? '/'.$node['path'] : '')) }}"
+                       class="text-sm text-slate-600 hover:text-slate-900">{{ $node['name'] }}</a>
                 @endif
             @endforeach
         </nav>

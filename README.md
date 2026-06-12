@@ -18,10 +18,20 @@ O dev cria **blocos** (Blade components), **plugins** (ServiceProviders) e **mod
 ```bash
 ddev start
 ddev exec php artisan migrate
-ddev exec npm run dev
+ddev exec php artisan db:seed --class=CmsSeeder   # roles, admin user, homepages de/en
+ddev exec npm run build                            # ou npm run dev
 ```
 
 App: https://laravel-cms.ddev.site · Admin: https://laravel-cms.ddev.site/admin
+Login dev: `admin@laravel-cms.test` / `password` (alterar fora de dev).
+
+## Testes
+
+Correm contra Postgres real (DB `testing`, paridade jsonb/GIN — sqlite não cobre o CMS):
+
+```bash
+ddev exec php artisan test
+```
 
 ## Comandos do CMS
 

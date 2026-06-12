@@ -4,8 +4,8 @@ namespace App\Models\Cms;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 class ContentType extends Model
 {
@@ -40,6 +40,6 @@ class ContentType extends Model
         return LogOptions::defaults()
             ->logOnly(['slug', 'name', 'blueprint'])
             ->logOnlyDirty()
-            ->dontSubmitEmptyLogs();
+            ->dontLogEmptyChanges();
     }
 }

@@ -3,8 +3,8 @@
 namespace App\Models\Cms;
 
 use Illuminate\Database\Eloquent\Model;
-use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 /**
  * Catálogo de plugins (autoridade do estado enabled). O boot NUNCA lê esta
@@ -30,6 +30,6 @@ class Plugin extends Model
         return LogOptions::defaults()
             ->logOnly(['slug', 'enabled'])
             ->logOnlyDirty()
-            ->dontSubmitEmptyLogs();
+            ->dontLogEmptyChanges();
     }
 }

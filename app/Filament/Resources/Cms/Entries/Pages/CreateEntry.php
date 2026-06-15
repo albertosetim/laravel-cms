@@ -18,4 +18,11 @@ class CreateEntry extends CreateRecord
 
         return $data;
     }
+
+    protected function getRedirectUrl(): string
+    {
+        $type = ContentType::query()->find($this->record->type_id);
+
+        return EntryResource::getUrl('index', $type ? ['type' => $type->slug] : []);
+    }
 }

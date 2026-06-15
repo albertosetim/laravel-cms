@@ -19,6 +19,11 @@ class EditEntry extends EditRecord
         return $data;
     }
 
+    protected function getRedirectUrl(): string
+    {
+        return EntryResource::getUrl('index', ['type' => $this->getRecord()->type?->slug]);
+    }
+
     protected function getHeaderActions(): array
     {
         return [

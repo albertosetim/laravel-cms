@@ -39,6 +39,10 @@ class BlueprintFormBuilder
             'boolean' => Toggle::make($name),
             'date' => DatePicker::make($name),
             'select' => Select::make($name)->options(self::selectOptions($field)),
+            'menu' => Select::make($name)
+                ->options(fn () => \App\Models\Cms\Menu::query()->orderBy('name')->pluck('name', 'id'))
+                ->searchable()
+                ->native(false),
             'media' => FileUpload::make($name)
                 ->disk('public')
                 ->directory('cms')

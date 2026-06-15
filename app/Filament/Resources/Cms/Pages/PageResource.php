@@ -24,6 +24,8 @@ class PageResource extends Resource
 
     protected static ?string $navigationLabel = 'Páginas';
 
+    protected static string|\UnitEnum|null $navigationGroup = 'Estrutura';
+
     protected static ?string $modelLabel = 'página';
 
     protected static ?string $pluralModelLabel = 'páginas';

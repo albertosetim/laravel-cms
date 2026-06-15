@@ -54,9 +54,27 @@ class Field extends Component
             'richtext' => (string) $value,
             'media' => $this->renderMedia($value),
             'link' => $this->renderLink($value),
+            'menu' => $this->renderMenu($value),
             'boolean' => $value ? '1' : '',
             default => e(is_scalar($value) ? (string) $value : json_encode($value)),
         };
+    }
+
+    private function renderMenu(mixed $value): string
+    {
+        $menuId = is_array($value) ? ($value['id'] ?? null) : $value;
+
+        if (! is_numeric($menuId)) {
+            return '';
+        }
+
+        $menu = \App\Models\Cms\Menu::find($menuId);
+
+        if ($menu === null) {
+            return '';
+        }
+
+        return view('cms.menu', ['items' => $menu->items ?? []])->render();
     }
 
     private function renderMedia(mixed $value): string
@@ -78,23 +96,17 @@ class Field extends Component
             return '';
         }
 
-        $url = $value['url'] ?? null;
-        $label = $value['label'] ?? $url;
-
         // Link interno por id — sobrevive a renames de slug.
-        if (isset($value['page_id'])) {
-            $page = \App\Models\Cms\Page::find($value['page_id']);
-
-            if ($page === null) {
-                return '';
-            }
-
-            $url = url('/'.$page->locale.'/'.$page->path());
-            $label = $value['label'] ?? $page->name;
-        }
+        $url = \App\Support\Cms\CmsUrl::forItem($value);
 
         if ($url === null) {
             return '';
+        }
+
+        $label = $value['label'] ?? $url;
+
+        if (! empty($value['page_id']) && empty($value['label'])) {
+            $label = \App\Models\Cms\Page::find($value['page_id'])?->name ?? $url;
         }
 
         return '<a href="'.e($url).'">'.e((string) $label).'</a>';

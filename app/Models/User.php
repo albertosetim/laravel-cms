@@ -36,4 +36,9 @@ class User extends Authenticatable implements FilamentUser
     {
         return $this->hasAnyRole(['admin', 'editor', 'publisher']);
     }
+
+    public function groups(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(\App\Models\Cms\Group::class, 'cms_group_user');
+    }
 }

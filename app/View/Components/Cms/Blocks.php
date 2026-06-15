@@ -10,8 +10,9 @@ use Illuminate\View\Component;
 
 /**
  * <x-cms.blocks :revision="$revision" /> — renderiza o documento de blocos
- * de uma revision, na ordem do editor. Bloco desconhecido (ex.: plugin
- * desativado) é saltado com warning — nunca rebenta a página pública.
+ * de uma revision, distribuído pela grelha do layout da página (config
+ * cms.layouts). Bloco desconhecido (ex.: plugin desativado) é saltado com
+ * warning — nunca rebenta a página pública.
  */
 class Blocks extends Component
 {
@@ -24,7 +25,12 @@ class Blocks extends Component
         $context = app(CmsRenderContext::class);
         $registry = app(BlockRegistry::class);
 
-        $html = '';
+        $page = $context->page() ?? $this->revision->page;
+        $layoutKey = $page?->layout ?? 'full';
+        $widths = config("cms.layouts.{$layoutKey}.columns", [12]);
+        $columnCount = count($widths);
+
+        $columns = array_fill(0, $columnCount, '');
 
         foreach ($this->revision->blockInstances() as $instance) {
             $view = $registry->viewFor($instance['block'] ?? '');
@@ -41,12 +47,26 @@ class Blocks extends Component
             $context->pushScope($instance['values'] ?? []);
 
             try {
-                $html .= view($view)->render();
+                $html = view($view)->render();
             } finally {
                 $context->popScope();
             }
+
+            // Coluna clampada ao número real de colunas do layout.
+            $column = min(max((int) ($instance['column'] ?? 0), 0), $columnCount - 1);
+            $columns[$column] .= $html;
         }
 
-        return $html;
+        if ($columnCount === 1) {
+            return $columns[0];
+        }
+
+        $grid = '<div class="cms-grid">';
+
+        foreach ($widths as $i => $width) {
+            $grid .= '<div class="cms-col-'.$width.'">'.$columns[$i].'</div>';
+        }
+
+        return $grid.'</div>';
     }
 }

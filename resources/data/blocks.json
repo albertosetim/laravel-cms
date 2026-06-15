@@ -79,6 +79,21 @@
                 }
             ]
         },
+        "menu": {
+            "key": "menu",
+            "view": "cms.blocks.menu",
+            "plugin": null,
+            "label": "Menu",
+            "icon": "heroicon-o-bars-3",
+            "fields": [
+                {
+                    "name": "menu",
+                    "type": "menu",
+                    "label": "Menu a mostrar",
+                    "required": true
+                }
+            ]
+        },
         "richtext": {
             "key": "richtext",
             "view": "cms.blocks.richtext",

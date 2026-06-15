@@ -3,6 +3,27 @@
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
+/* Grelha dos layouts de página (config cms.layouts). CSS próprio em vez de
+   classes Tailwind dinâmicas: o render constrói os nomes em runtime, logo o
+   scanner do Tailwind não os veria. Em mobile (sem template-columns) os blocos
+   empilham naturalmente. */
+.cms-grid {
+    display: grid;
+    gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+    .cms-grid {
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+    }
+
+    .cms-col-3 { grid-column: span 3 / span 3; }
+    .cms-col-4 { grid-column: span 4 / span 4; }
+    .cms-col-6 { grid-column: span 6 / span 6; }
+    .cms-col-8 { grid-column: span 8 / span 8; }
+    .cms-col-12 { grid-column: span 12 / span 12; }
+}
+
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';

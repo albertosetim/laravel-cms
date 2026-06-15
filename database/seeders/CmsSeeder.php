@@ -44,5 +44,21 @@ class CmsSeeder extends Seeder
                 app(PagePublisher::class)->publish($home, $admin->id);
             }
         }
+
+        // Menu principal de exemplo, ligado às homepages por id (sobrevive a renames).
+        $homeDe = \App\Models\Cms\Page::query()
+            ->where('locale', config('cms.default_locale'))
+            ->where('slug', config('cms.home_slug'))
+            ->first();
+
+        \App\Models\Cms\Menu::query()->firstOrCreate(
+            ['slug' => 'main'],
+            [
+                'name' => 'Menu Principal',
+                'items' => $homeDe ? [
+                    ['label' => 'Início', 'type' => 'page', 'page_id' => $homeDe->id, 'children' => []],
+                ] : [],
+            ],
+        );
     }
 }

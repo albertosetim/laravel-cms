@@ -56,6 +56,13 @@ class PageForm
                             ->options(self::templates())
                             ->default('default')
                             ->required(),
+                        Select::make('layout')
+                            ->label('Layout (grelha)')
+                            ->options(self::layouts())
+                            ->default('full')
+                            ->live()
+                            ->required()
+                            ->helperText('Distribui os blocos por colunas. Cada bloco escolhe a sua coluna.'),
                         Select::make('locale')
                             ->options(array_combine(config('cms.locales'), config('cms.locales')))
                             ->default(config('cms.default_locale'))
@@ -85,8 +92,41 @@ class PageForm
         return collect(app(BlockRegistry::class)->blocks())
             ->map(fn (array $definition, string $key) => Builder\Block::make($key)
                 ->label($definition['label'] ?? $key)
-                ->schema(BlueprintFormBuilder::components($definition['fields'] ?? [])))
+                ->schema(array_merge(
+                    [self::columnPicker()],
+                    BlueprintFormBuilder::components($definition['fields'] ?? []),
+                )))
             ->values()
+            ->all();
+    }
+
+    /**
+     * Seletor de coluna por bloco. Visível só quando o layout da página tem
+     * mais do que uma coluna (lê o campo layout no topo do form).
+     */
+    private static function columnPicker(): Select
+    {
+        return Select::make('__column')
+            ->label('Coluna')
+            ->options(fn (Get $get) => self::columnOptions($get('layout', isAbsolute: true)))
+            ->default(1)
+            ->visible(fn (Get $get) => count(self::columnOptions($get('layout', isAbsolute: true))) > 1)
+            ->dehydrated();
+    }
+
+    private static function columnOptions(?string $layout): array
+    {
+        $count = count(config("cms.layouts.{$layout}.columns", [12]));
+
+        return collect(range(1, $count))
+            ->mapWithKeys(fn (int $n) => [$n => 'Coluna '.$n])
+            ->all();
+    }
+
+    private static function layouts(): array
+    {
+        return collect(config('cms.layouts'))
+            ->mapWithKeys(fn (array $layout, string $key) => [$key => $layout['label']])
             ->all();
     }
 

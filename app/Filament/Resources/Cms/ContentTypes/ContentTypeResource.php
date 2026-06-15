@@ -33,11 +33,13 @@ class ContentTypeResource extends Resource
 
     protected static ?string $navigationLabel = 'Tipos de conteúdo';
 
+    protected static string|\UnitEnum|null $navigationGroup = 'System';
+
     protected static ?string $modelLabel = 'tipo de conteúdo';
 
     protected static ?string $pluralModelLabel = 'tipos de conteúdo';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 1;
 
     public static function form(Schema $schema): Schema
     {

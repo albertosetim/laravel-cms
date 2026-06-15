@@ -50,4 +50,22 @@ return [
         // Manifesto da paleta de blocos, gerado por cms:build e committed (G5).
         'manifest' => 'data/blocks.json',
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Layouts de página
+    |--------------------------------------------------------------------------
+    | Cada layout é a grelha base da página, expressa em colunas de 12. Os
+    | blocos são distribuídos pelas colunas (campo "column" de cada instância).
+    | Em mobile as colunas empilham (col-span-12).
+    */
+
+    'layouts' => [
+        'full' => ['label' => 'Largura total', 'columns' => [12]],
+        '6-6' => ['label' => 'Duas colunas (6 + 6)', 'columns' => [6, 6]],
+        '8-4' => ['label' => 'Conteúdo + sidebar (8 + 4)', 'columns' => [8, 4]],
+        '4-8' => ['label' => 'Sidebar + conteúdo (4 + 8)', 'columns' => [4, 8]],
+        '4-4-4' => ['label' => 'Três colunas (4 + 4 + 4)', 'columns' => [4, 4, 4]],
+        '3-3-3-3' => ['label' => 'Quatro colunas (3 + 3 + 3 + 3)', 'columns' => [3, 3, 3, 3]],
+    ],
 ];

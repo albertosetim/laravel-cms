@@ -20,11 +20,16 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * UM resource genérico serve TODOS os tipos de admin: o form é gerado do
  * blueprint do tipo em runtime de leitura (G7) — para o editor é
  * indistinguível de um model feito por dev.
+ *
+ * A navegação NÃO é registada por este resource: cada tipo de conteúdo ganha
+ * o seu próprio item no menu lateral (ver AppServiceProvider::bootCmsNavigation),
+ * que abre esta mesma listagem filtrada pelo tipo (?type=slug).
  */
 class EntryResource extends Resource
 {
@@ -32,13 +37,19 @@ class EntryResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCircleStack;
 
-    protected static ?string $navigationLabel = 'Conteúdos';
+    protected static bool $shouldRegisterNavigation = false;
 
     protected static ?string $modelLabel = 'conteúdo';
 
     protected static ?string $pluralModelLabel = 'conteúdos';
 
-    protected static ?int $navigationSort = 2;
+    /** Tipo ativo a partir do ?type=slug do request (ou null). */
+    public static function activeType(): ?ContentType
+    {
+        $slug = request('type');
+
+        return $slug ? ContentType::query()->where('slug', $slug)->first() : null;
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -47,6 +58,7 @@ class EntryResource extends Resource
                 Select::make('type_id')
                     ->label('Tipo')
                     ->options(fn () => ContentType::query()->where('promoted', false)->orderBy('name')->pluck('name', 'id'))
+                    ->default(fn () => static::activeType()?->id)
                     ->required()
                     ->live()
                     ->disabledOn('edit')
@@ -63,6 +75,11 @@ class EntryResource extends Resource
             Section::make('Conteúdo')->schema([
                 Group::make()
                     ->statePath('data')
+                    // key por tipo: força o Livewire a re-renderizar os inputs
+                    // quando o schema dinâmico muda — sem isto o DOM-diff reutiliza
+                    // inputs antigos e o estado/validação não sincroniza (bug do
+                    // "title vazio" mesmo estando preenchido).
+                    ->key(fn (Get $get): string => 'entry-data-'.($get('type_id') ?? 'none'))
                     ->schema(function (Get $get): array {
                         $type = ContentType::query()->find($get('type_id'));
 
@@ -77,9 +94,18 @@ class EntryResource extends Resource
 
     public static function table(Table $table): Table
     {
+        $activeType = static::activeType();
+
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $activeType
+                ? $query->where('type_id', $activeType->id)
+                : $query)
             ->columns([
-                TextColumn::make('type.name')->label('Tipo')->badge()->sortable(),
+                TextColumn::make('type.name')
+                    ->label('Tipo')
+                    ->badge()
+                    ->sortable()
+                    ->hidden((bool) $activeType),
                 TextColumn::make('title')
                     ->label('Conteúdo')
                     ->state(fn (Entry $record) => self::entryLabel($record)),
@@ -91,7 +117,8 @@ class EntryResource extends Resource
             ->filters([
                 SelectFilter::make('type_id')
                     ->label('Tipo')
-                    ->options(fn () => ContentType::query()->orderBy('name')->pluck('name', 'id')),
+                    ->options(fn () => ContentType::query()->orderBy('name')->pluck('name', 'id'))
+                    ->hidden((bool) $activeType),
             ])
             ->defaultSort('updated_at', 'desc');
     }

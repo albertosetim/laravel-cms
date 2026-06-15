@@ -5,6 +5,17 @@ CMS construído de raiz em Laravel puro, seguindo o blueprint "GodLike" (ver `do
 O admin cria **tipos de conteúdo**, **páginas** e compõe **blocos** nas páginas — tudo como dados na DB.
 O dev cria **blocos** (Blade components), **plugins** (ServiceProviders) e **models** — tudo como código no git.
 
+## Funcionalidades do backend
+
+- **Páginas** com árvore, draft/publish, preview assinado e **layout base** (largura
+  total, 6+6, 8+4, 4+4+4, etc.) — cada bloco escolhe a sua coluna na grelha de 12.
+- **Tipos de conteúdo** definidos pelo admin (blueprint jsonb). Cada tipo ganha o
+  **seu próprio item no menu lateral** (grupo *Conteúdo*) com o CRUD filtrado.
+- **Menus** estilo Shopify (nome + slug + árvore de itens com 2 níveis), colocáveis
+  numa página através do bloco *Menu*.
+- **System** (só admins): Tipos de conteúdo, Utilizadores, Roles, Grupos.
+- Grupos de navegação: *Conteúdo* · *Estrutura* (Páginas, Menus) · *System*.
+
 ## Stack
 
 - Laravel 13 · PHP 8.4

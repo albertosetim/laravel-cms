@@ -1,13 +1,11 @@
 <?php
 
 use App\Filament\Resources\Cms\ContentTypes\ContentTypeResource;
-use App\Filament\Resources\Cms\Entries\EntryResource;
 use App\Filament\Resources\Cms\Menus\MenuResource;
 use App\Filament\Resources\Cms\Pages\PageResource;
 use App\Filament\Resources\Groups\GroupResource;
 use App\Filament\Resources\Roles\RoleResource;
 use App\Filament\Resources\Users\UserResource;
-use App\Models\Cms\ContentType;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
@@ -31,20 +29,11 @@ it('admin abre o painel e os resources de estrutura e system', function () {
     $this->get(MenuResource::getUrl('index'))->assertOk();
     $this->get(MenuResource::getUrl('create'))->assertOk();
     $this->get(ContentTypeResource::getUrl('index'))->assertOk();
+    $this->get(ContentTypeResource::getUrl('create'))->assertOk();
     $this->get(UserResource::getUrl('index'))->assertOk();
     $this->get(UserResource::getUrl('create'))->assertOk();
     $this->get(RoleResource::getUrl('index'))->assertOk();
     $this->get(GroupResource::getUrl('index'))->assertOk();
-});
-
-it('regista um item de navegacao por tipo de conteudo', function () {
-    actingAsRole('admin');
-    ContentType::create(['slug' => 'blog', 'name' => 'Blog', 'blueprint' => ['fields' => []]]);
-
-    // A listagem de entries filtrada pelo tipo abre e mostra o nome do tipo.
-    $this->get(EntryResource::getUrl('index', ['type' => 'blog']))
-        ->assertOk()
-        ->assertSee('Blog');
 });
 
 it('nega a editores o acesso a System (users/roles/groups/tipos)', function () {
@@ -56,9 +45,8 @@ it('nega a editores o acesso a System (users/roles/groups/tipos)', function () {
     $this->get(ContentTypeResource::getUrl('index'))->assertForbidden();
 });
 
-it('permite a editores gerir paginas e conteudos', function () {
+it('permite a editores gerir paginas', function () {
     actingAsRole('editor');
 
     $this->get(PageResource::getUrl('index'))->assertOk();
-    $this->get(EntryResource::getUrl('index'))->assertOk();
 });

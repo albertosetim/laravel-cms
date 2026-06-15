@@ -2,8 +2,17 @@
 
 CMS construído de raiz em Laravel puro, seguindo o blueprint "GodLike" (ver `docs/blueprint/`).
 
-O admin cria **tipos de conteúdo**, **páginas** e compõe **blocos** nas páginas — tudo como dados na DB.
-O dev cria **blocos** (Blade components), **plugins** (ServiceProviders) e **models** — tudo como código no git.
+Define um **content type** no designer (campos + relações) e gera **Model + Migration +
+FilamentResource reais** com um clique (ou `cms:make:type`). O conteúdo vive em tabelas
+tipadas, não em jsonb genérico. O dev cria também **blocos** (Blade components) e
+**plugins** (ServiceProviders).
+
+> ⚠️ **Nota de arquitetura:** por decisão de produto, o botão "Gerar código" no admin
+> escreve ficheiros e corre `migrate` em **qualquer ambiente** — isto contraria a regra
+> G1 do blueprint original (zero codegen em runtime). Implicações em produção: filesystem
+> efémero/read-only (containers), multi-servidor (ficheiros só num nó), DDL sem rollback,
+> e o próximo deploy do git pode sobrepor-se ao gerado. Em produção, prefere o comando
+> `cms:make:type {slug}` no pipeline e commita o resultado.
 
 ## Funcionalidades do backend
 
@@ -51,9 +60,21 @@ ddev exec php artisan test
 | `cms:build` | Extrai blueprints dos blocos para `resources/data/blocks.json` (committed) |
 | `cms:plugins:sync` | Descobre plugins, resolve dependências, materializa o cache de boot |
 | `cms:plugins:enable {slug}` / `disable {slug}` | Ativa/desativa plugin (deploy-time) |
-| `cms:promote:type {slug}` | Promove um tipo de admin a Model+Migration+Resource (dev-time) |
+| `cms:make:type {slug} [--migrate]` | Gera Model + Migration + Resource a partir de um content type (designer) |
+
+## Content types → models gerados
+
+1. No admin, **System → Tipos de conteúdo**, cria um tipo: nome, campos (texto, rich
+   text, número, data, imagem, seleção, link, menu) e **relações** (belongsTo,
+   belongsToMany, hasMany) para outros tipos ou models do core.
+2. Clica **Gerar código** (ou corre `cms:make:type {slug} --migrate`).
+3. São escritos `app/Models/{Tipo}.php`, a migration (colunas tipadas + FK/pivot) e
+   `app/Filament/Resources/{Tipo}/...`. O resource aparece no grupo *Conteúdo* após
+   recarregar. A partir daí o dev é dono dos ficheiros (evolução = nova migration).
 
 ## Regras de ouro
 
-Ver `docs/blueprint/01-principios.md` (G1–G7). Resumo: nunca gerar código em runtime,
-nunca EAV, boot nunca lê a DB, git é a autoridade, o admin cria dados e o dev cria código.
+Ver `docs/blueprint/01-principios.md` (G1–G7). O blueprint original proíbe codegen em
+runtime (G1); este projeto **abre uma exceção deliberada**: o botão "Gerar código" no
+admin gera ficheiros em qualquer ambiente (ver nota no topo). As restantes regras
+mantêm-se: boot nunca lê a DB, git é a autoridade, nada de EAV.

@@ -11,15 +11,14 @@ uses(RefreshDatabase::class);
 
 // Limpa os ficheiros gerados (são código real escrito em disco).
 afterEach(function () {
-    foreach (['Testcategory', 'Testpost'] as $studly) {
+    foreach (['Testcategory', 'Testpost', 'Widget'] as $studly) {
         File::delete(app_path("Models/{$studly}.php"));
         File::deleteDirectory(app_path("Filament/Resources/{$studly}"));
     }
-    foreach (File::glob(database_path('migrations/*_create_testcategories_table.php')) as $f) {
-        File::delete($f);
-    }
-    foreach (File::glob(database_path('migrations/*_create_testposts_table.php')) as $f) {
-        File::delete($f);
+    foreach (['testcategories', 'testposts', 'widgets'] as $table) {
+        foreach (File::glob(database_path("migrations/*_create_{$table}_table.php")) as $f) {
+            File::delete($f);
+        }
     }
     foreach (File::glob(database_path('migrations/*_table.php')) as $f) {
         if (str_contains($f, 'testcategory_testpost') || str_contains($f, 'testpost_testcategory')) {
@@ -81,6 +80,30 @@ it('gera uma relação belongsTo com FK utilizável', function () {
 
     expect($p->category)->not->toBeNull()
         ->and($p->category->name)->toBe('Notícias');
+});
+
+it('criar um tipo no designer gera logo o codigo e fica sob Conteudos', function () {
+    \Spatie\Permission\Models\Role::findOrCreate('admin');
+    $admin = \App\Models\User::factory()->create();
+    $admin->assignRole('admin');
+    $this->actingAs($admin);
+
+    Pest\Livewire\livewire(\App\Filament\Resources\Cms\ContentTypes\Pages\CreateContentType::class)
+        ->fillForm([
+            'name' => 'Widget',
+            'slug' => 'widget',
+            'blueprint' => ['fields' => [['name' => 'title', 'type' => 'text', 'required' => true]]],
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    // Auto-gerado: ficheiros + tabela + flag.
+    expect(class_exists(\App\Models\Widget::class))->toBeTrue()
+        ->and(\Illuminate\Support\Facades\Schema::hasTable('widgets'))->toBeTrue()
+        ->and(\App\Models\Cms\ContentType::where('slug', 'widget')->value('generated'))->toBeTrue();
+
+    // O resource gerado declara o grupo "Conteúdos" do menu lateral.
+    expect(\App\Filament\Resources\Widget\WidgetResource::getNavigationGroup())->toBe('Conteúdos');
 });
 
 it('recusa-se a esmagar um model já gerado', function () {

@@ -381,7 +381,7 @@ class {$studly}Resource extends Resource
 
     protected static string|\BackedEnum|null \$navigationIcon = '{$icon}';
 
-    protected static string|\UnitEnum|null \$navigationGroup = 'Conteúdo';
+    protected static string|\UnitEnum|null \$navigationGroup = 'Conteúdos';
 
     protected static ?string \$navigationLabel = '{$type->name}';
 

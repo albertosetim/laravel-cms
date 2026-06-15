@@ -113,6 +113,7 @@ class ContentTypeResource extends Resource
                         ->hiddenLabel()
                         ->reorderable(false)
                         ->collapsible()
+                        ->defaultItems(0)
                         ->itemLabel(fn (array $state) => ($state['name'] ?? '').' ('.($state['type'] ?? '').')')
                         ->addActionLabel('Adicionar relação')
                         ->schema([
@@ -185,7 +186,8 @@ class ContentTypeResource extends Resource
             ]);
     }
 
-    private static function runGenerate(ContentType $record): void
+    /** Gera Model+Migration+Resource e migra. Usado pelo botão e pelo create. */
+    public static function runGenerate(ContentType $record): void
     {
         try {
             $written = app(TypeGenerator::class)->generate($record);
@@ -199,9 +201,8 @@ class ContentTypeResource extends Resource
 
         Notification::make()
             ->title($record->name.' gerado')
-            ->body(count($written).' ficheiro(s) escritos e migrados. Recarrega para ver o novo item no menu.')
+            ->body(count($written).' ficheiro(s) escritos e migrados. Aparece agora em "Conteúdos" no menu.')
             ->success()
-            ->persistent()
             ->send();
     }
 

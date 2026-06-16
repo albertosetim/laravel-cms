@@ -24,6 +24,8 @@ class ContentType extends Model
         return [
             'blueprint' => 'array',
             'relation_defs' => 'array',
+            'generated_blueprint' => 'array',
+            'generated_relation_defs' => 'array',
             'options' => 'array',
             'generated' => 'boolean',
         ];
@@ -39,6 +41,18 @@ class ContentType extends Model
     public function relationDefs(): array
     {
         return $this->relation_defs ?? [];
+    }
+
+    /** Campos no momento da última geração (referência para o diff). */
+    public function generatedFields(): array
+    {
+        return $this->generated_blueprint['fields'] ?? [];
+    }
+
+    /** Relações no momento da última geração (referência para o diff). */
+    public function generatedRelationDefs(): array
+    {
+        return $this->generated_relation_defs ?? [];
     }
 
     public function getActivitylogOptions(): LogOptions

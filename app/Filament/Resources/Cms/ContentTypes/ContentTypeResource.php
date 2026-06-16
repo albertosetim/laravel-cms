@@ -7,8 +7,12 @@ use App\Filament\Resources\Cms\ContentTypes\Pages\CreateContentType;
 use App\Filament\Resources\Cms\ContentTypes\Pages\EditContentType;
 use App\Filament\Resources\Cms\ContentTypes\Pages\ListContentTypes;
 use App\Models\Cms\ContentType;
+use App\Models\Cms\Menu;
+use App\Models\Cms\Page;
+use App\Models\User;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
@@ -112,6 +116,10 @@ class ContentTypeResource extends Resource
                             TagsInput::make('options')
                                 ->label(__('Options'))
                                 ->visible(fn (Get $get) => $get('type') === 'select'),
+                            Toggle::make('multiple')
+                                ->label(__('Multiple files'))
+                                ->inline(false)
+                                ->visible(fn (Get $get) => $get('type') === 'media'),
                             Toggle::make('listable')
                                 ->label(__('Show in listing (indexed column)'))
                                 ->inline(false),
@@ -165,9 +173,9 @@ class ContentTypeResource extends Resource
             ->all();
 
         $core = [
-            \App\Models\Cms\Page::class => __('Pages (core)'),
-            \App\Models\Cms\Menu::class => __('Menus (core)'),
-            \App\Models\User::class => __('Users (core)'),
+            Page::class => __('Pages (core)'),
+            Menu::class => __('Menus (core)'),
+            User::class => __('Users (core)'),
         ];
 
         return $types + $core;
@@ -194,7 +202,7 @@ class ContentTypeResource extends Resource
                     ->requiresConfirmation()
                     ->modalDescription(__('Generates real Model + Migration + Resource and runs migrate. The files are committed to git.'))
                     ->action(fn (ContentType $record) => self::runGenerate($record)),
-                \Filament\Actions\EditAction::make(),
+                EditAction::make(),
             ]);
     }
 
@@ -214,6 +222,34 @@ class ContentTypeResource extends Resource
         Notification::make()
             ->title($record->name.' '.__('generated'))
             ->body(count($written).' '.__('file(s) written and migrated. Now appears under "Content" in the menu.'))
+            ->success()
+            ->send();
+    }
+
+    /**
+     * Editar um tipo já gerado: calcula o diff e emite uma migration de ALTER
+     * (criar/alterar/remover colunas e relações), depois migra. Não toca no
+     * Model nem no Resource — o dev atualiza fillable/casts/form à mão.
+     */
+    public static function runAlter(ContentType $record): void
+    {
+        $written = app(TypeGenerator::class)->regenerate($record);
+
+        if ($written === []) {
+            Notification::make()
+                ->title(__('No schema changes'))
+                ->body(__('The edit changed no column or relation.'))
+                ->info()
+                ->send();
+
+            return;
+        }
+
+        Artisan::call('migrate', ['--force' => true]);
+
+        Notification::make()
+            ->title($record->name.' '.__('updated'))
+            ->body(count($written).' '.__('migration(s) written and migrated. Update the Model (fillable/casts) and the Resource form by hand — and, for new image fields, add HasMedia + SpatieMediaLibraryFileUpload.'))
             ->success()
             ->send();
     }

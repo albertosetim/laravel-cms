@@ -3,6 +3,9 @@
 namespace App\Cms\Generator;
 
 use App\Models\Cms\ContentType;
+use App\Models\Cms\Menu;
+use App\Models\Cms\Page;
+use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
@@ -20,9 +23,9 @@ class TypeGenerator
 {
     /** Tabelas de models do core, para resolver FKs/títulos de relações. */
     private const CORE_TABLES = [
-        \App\Models\Cms\Page::class => ['table' => 'cms_pages', 'title' => 'name'],
-        \App\Models\Cms\Menu::class => ['table' => 'cms_menus', 'title' => 'name'],
-        \App\Models\User::class => ['table' => 'users', 'title' => 'name'],
+        Page::class => ['table' => 'cms_pages', 'title' => 'name'],
+        Menu::class => ['table' => 'cms_menus', 'title' => 'name'],
+        User::class => ['table' => 'users', 'title' => 'name'],
     ];
 
     public function studly(ContentType $type): string
@@ -82,8 +85,71 @@ class TypeGenerator
         $written[] = $this->put($dir.'/Pages/Edit'.$this->studly($type).'.php', $this->pageStub($type, 'Edit', 'EditRecord'));
 
         $type->forceFill(['generated' => true])->save();
+        $this->snapshot($type);
 
         return $written;
+    }
+
+    /**
+     * Reage a uma edição de um tipo já gerado: calcula o diff contra o snapshot
+     * e emite uma migration de ALTER (+ migrations de pivot para belongsToMany).
+     * Por decisão do utilizador, NÃO toca no Model nem no Resource — o dev é dono
+     * desses ficheiros e atualiza fillable/casts/form à mão.
+     *
+     * @return array<int, string> paths escritos (vazio se não houver mudanças de schema)
+     */
+    public function regenerate(ContentType $type): array
+    {
+        $differ = new SchemaDiffer;
+        $fieldDiff = $differ->diffFields($type->generatedFields(), $type->fields());
+        $relationDiff = $differ->diffRelations($type->generatedRelationDefs(), $type->relationDefs());
+
+        if ($differ->isEmpty($fieldDiff, $relationDiff)) {
+            $this->snapshot($type);
+
+            return [];
+        }
+
+        $belongsToAdded = array_values(array_filter($relationDiff['added'], fn ($r) => ($r['type'] ?? null) === 'belongsTo'));
+        $belongsToDropped = array_values(array_filter($relationDiff['dropped'], fn ($r) => ($r['type'] ?? null) === 'belongsTo'));
+        $pivotAdded = array_values(array_filter($relationDiff['added'], fn ($r) => ($r['type'] ?? null) === 'belongsToMany'));
+        $pivotDropped = array_values(array_filter($relationDiff['dropped'], fn ($r) => ($r['type'] ?? null) === 'belongsToMany'));
+
+        $now = Carbon::now();
+        $written = [];
+
+        $columnChanges = $fieldDiff['added'] || $fieldDiff['dropped'] || $fieldDiff['changed']
+            || $belongsToAdded || $belongsToDropped;
+
+        if ($columnChanges) {
+            $written[] = $this->put(
+                $this->alterMigrationPath($type, $now),
+                $this->alterMigrationStub($this->table($type), $fieldDiff, $belongsToAdded, $belongsToDropped),
+            );
+        }
+
+        $i = 0;
+        foreach ($pivotAdded as $relation) {
+            $path = $this->pivotMigrationPath($type, $relation, $now->copy()->addSeconds(++$i));
+            $written[] = $this->put($path, $this->pivotMigrationStub($type, $relation));
+        }
+        foreach ($pivotDropped as $relation) {
+            $path = $this->dropPivotMigrationPath($type, $relation, $now->copy()->addSeconds(++$i));
+            $written[] = $this->put($path, $this->dropPivotMigrationStub($type, $relation));
+        }
+
+        $this->snapshot($type);
+
+        return $written;
+    }
+
+    /** Guarda o estado atual como referência para o próximo diff. */
+    private function snapshot(ContentType $type): void
+    {
+        $type->forceFill([
+            'generated_blueprint' => $type->blueprint,
+            'generated_relation_defs' => $type->relation_defs,
+        ])->save();
     }
 
     private function put(string $path, string $contents): string
@@ -107,7 +173,11 @@ class TypeGenerator
         $lines = [];
 
         foreach ($type->fields() as $field) {
-            $lines[] = '            '.$this->columnFor($field);
+            $spec = SchemaDiffer::columnSpec($field);
+            if ($spec === null) {
+                continue; // media: gerido pelo Spatie, sem coluna própria
+            }
+            $lines[] = '            '.$this->renderColumn($spec);
         }
 
         foreach ($this->belongsTo($type) as $relation) {
@@ -162,35 +232,112 @@ return new class extends Migration
 PHP;
     }
 
-    private function columnFor(array $field): string
+    /**
+     * Renderiza uma linha de coluna a partir de um spec do SchemaDiffer.
+     * Em modo $change não emite ->index() (o índice não faz parte do change()).
+     *
+     * @param  array{name: string, method: string, nullable: bool, indexed: bool}  $spec
+     */
+    private function renderColumn(array $spec, bool $change = false): string
     {
-        $name = Str::snake($field['name']);
-        $required = ! empty($field['required']);
-        $indexed = ! empty($field['listable']) || ($field['type'] ?? '') === 'select';
+        $line = '$table->'.$spec['method'].'(\''.$spec['name'].'\')';
 
-        $method = match ($field['type'] ?? 'text') {
-            'textarea' => 'text',
-            'richtext' => 'longText',
-            'number' => 'integer',
-            'boolean' => 'boolean',
-            'date' => 'date',
-            'media', 'link', 'select' => 'string',
-            'menu' => 'unsignedBigInteger',
-            'repeater' => 'jsonb',
-            default => 'string',
-        };
-
-        $line = '$table->'.$method.'(\''.$name.'\')';
-
-        if (! $required) {
+        if ($spec['nullable']) {
             $line .= '->nullable()';
         }
 
-        if ($indexed && ! in_array($method, ['text', 'longText', 'jsonb'], true)) {
+        if ($spec['indexed'] && ! $change) {
             $line .= '->index()';
         }
 
-        return $line.';';
+        return $line.($change ? '->change();' : ';');
+    }
+
+    // ---- Migration de ALTER (edição de um tipo já gerado) ------------------
+
+    private function alterMigrationPath(ContentType $type, Carbon $now): string
+    {
+        return database_path('migrations/'.$now->format('Y_m_d_His').'_update_'.$this->table($type).'_table.php');
+    }
+
+    /**
+     * @param  array{added: list<array>, dropped: list<array>, changed: list<array{from: array, to: array}>}  $fieldDiff
+     * @param  list<array>  $belongsToAdded
+     * @param  list<array>  $belongsToDropped
+     */
+    private function alterMigrationStub(string $table, array $fieldDiff, array $belongsToAdded, array $belongsToDropped): string
+    {
+        $up = [];
+        $down = [];
+        $foreignKeys = '';
+
+        foreach ($fieldDiff['added'] as $spec) {
+            $up[] = $this->renderColumn($spec);
+            $down[] = '$table->dropColumn(\''.$spec['name'].'\');';
+        }
+
+        foreach ($belongsToAdded as $relation) {
+            $fk = $this->fkColumn($relation);
+            $up[] = '$table->unsignedBigInteger(\''.$fk.'\')->nullable()->index();';
+            $down[] = '$table->dropColumn(\''.$fk.'\');';
+
+            $targetTable = $this->targetTable($relation['target']);
+            $foreignKeys .= <<<PHP
+
+        if (Schema::hasTable('{$targetTable}')) {
+            Schema::table('{$table}', function (Blueprint \$table) {
+                \$table->foreign('{$fk}')->references('id')->on('{$targetTable}')->nullOnDelete();
+            });
+        }
+PHP;
+        }
+
+        foreach ($fieldDiff['changed'] as $change) {
+            $up[] = $this->renderColumn($change['to'], change: true);
+            $down[] = $this->renderColumn($change['from'], change: true);
+        }
+
+        // Postgres remove automaticamente a FK ao dropar a coluna que a contém.
+        foreach ($belongsToDropped as $relation) {
+            $fk = $this->fkColumn($relation);
+            $up[] = '$table->dropColumn(\''.$fk.'\');';
+            $down[] = '$table->unsignedBigInteger(\''.$fk.'\')->nullable()->index();';
+        }
+
+        foreach ($fieldDiff['dropped'] as $spec) {
+            $up[] = '$table->dropColumn(\''.$spec['name'].'\');';
+            $down[] = $this->renderColumn($spec);
+        }
+
+        $upCols = implode("\n", array_map(fn ($l) => '            '.$l, $up));
+        $downCols = implode("\n", array_map(fn ($l) => '            '.$l, $down));
+
+        return <<<PHP
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('{$table}', function (Blueprint \$table) {
+{$upCols}
+        });
+{$foreignKeys}
+    }
+
+    public function down(): void
+    {
+        Schema::table('{$table}', function (Blueprint \$table) {
+{$downCols}
+        });
+    }
+};
+
+PHP;
     }
 
     // ---- Pivots (belongsToMany) -------------------------------------------
@@ -252,13 +399,54 @@ return new class extends Migration
 PHP;
     }
 
+    private function dropPivotMigrationPath(ContentType $type, array $relation, Carbon $now): string
+    {
+        return database_path('migrations/'.$now->format('Y_m_d_His').'_drop_'.$this->pivotTable($type, $relation).'_table.php');
+    }
+
+    /** Espelho de pivotMigrationStub: dropa no up(), recria no down(). */
+    private function dropPivotMigrationStub(ContentType $type, array $relation): string
+    {
+        $pivot = $this->pivotTable($type, $relation);
+        $thisCol = Str::snake(Str::singular($this->studly($type))).'_id';
+        $targetCol = Str::snake(Str::singular(class_basename($relation['target']))).'_id';
+
+        return <<<PHP
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::dropIfExists('{$pivot}');
+    }
+
+    public function down(): void
+    {
+        Schema::create('{$pivot}', function (Blueprint \$table) {
+            \$table->unsignedBigInteger('{$thisCol}');
+            \$table->unsignedBigInteger('{$targetCol}');
+            \$table->primary(['{$thisCol}', '{$targetCol}']);
+        });
+    }
+};
+
+PHP;
+    }
+
     // ---- Model -------------------------------------------------------------
 
     private function modelStub(ContentType $type): string
     {
         $studly = $this->studly($type);
 
+        // Campos media não têm coluna — são geridos pelo Spatie (tabela morph).
         $fillable = collect($type->fields())
+            ->reject(fn (array $f) => ($f['type'] ?? '') === 'media')
             ->map(fn (array $f) => "'".Str::snake($f['name'])."'");
 
         foreach ($this->belongsTo($type) as $relation) {
@@ -276,10 +464,20 @@ PHP;
             }."',")
             ->implode("\n");
 
-        $relationMethods = collect($type->relationDefs())
+        $bodyMethods = collect($type->relationDefs())
             ->map(fn (array $r) => $this->relationMethod($r))
             ->filter()
-            ->implode("\n\n");
+            ->all();
+
+        $implements = '';
+        $mediaTrait = '';
+        if (($media = $this->mediaFields($type)) !== []) {
+            $implements = ' implements \Spatie\MediaLibrary\HasMedia';
+            $mediaTrait = "\n    use \Spatie\MediaLibrary\InteractsWithMedia;";
+            $bodyMethods[] = $this->mediaMethods($media);
+        }
+
+        $methods = implode("\n\n", $bodyMethods);
 
         return <<<PHP
 <?php
@@ -289,9 +487,9 @@ namespace App\Models;
 use App\Models\Concerns\HasSettings;
 use Illuminate\Database\Eloquent\Model;
 
-class {$studly} extends Model
+class {$studly} extends Model{$implements}
 {
-    use HasSettings;
+    use HasSettings;{$mediaTrait}
 
     protected \$fillable = [{$fillableStr}];
 
@@ -302,9 +500,38 @@ class {$studly} extends Model
         ];
     }
 
-{$relationMethods}
+{$methods}
 }
 
+PHP;
+    }
+
+    /** Campos do tipo cujo type é 'media'. */
+    private function mediaFields(ContentType $type): array
+    {
+        return array_values(array_filter($type->fields(), fn ($f) => ($f['type'] ?? '') === 'media'));
+    }
+
+    /** registerMediaCollections (uma collection por campo) + conversão thumb. */
+    private function mediaMethods(array $mediaFields): string
+    {
+        $collections = collect($mediaFields)->map(function (array $field) {
+            $name = Str::snake($field['name']);
+            $single = empty($field['multiple']) ? '->singleFile()' : '';
+
+            return "        \$this->addMediaCollection('{$name}'){$single};";
+        })->implode("\n");
+
+        return <<<PHP
+    public function registerMediaCollections(): void
+    {
+{$collections}
+    }
+
+    public function registerMediaConversions(?\Spatie\MediaLibrary\MediaCollections\Models\Media \$media = null): void
+    {
+        \$this->addMediaConversion('thumb')->width(200)->height(200)->nonQueued();
+    }
 PHP;
     }
 
@@ -358,7 +585,9 @@ PHP,
         $tableCols = [];
         foreach ($this->listableFields($type) as $field) {
             $name = Str::snake($field['name']);
-            $tableCols[] = "                \\Filament\\Tables\\Columns\\TextColumn::make('{$name}')->searchable(),";
+            $tableCols[] = ($field['type'] ?? '') === 'media'
+                ? "                \\Filament\\Tables\\Columns\\SpatieMediaLibraryImageColumn::make('{$name}')->collection('{$name}')->conversion('thumb')->circular(),"
+                : "                \\Filament\\Tables\\Columns\\TextColumn::make('{$name}')->searchable(),";
         }
         $tableCols[] = "                \\Filament\\Tables\\Columns\\TextColumn::make('status')->badge(),";
         $tableCols[] = "                \\Filament\\Tables\\Columns\\TextColumn::make('updated_at')->dateTime('d.m.Y H:i')->sortable(),";
@@ -440,7 +669,7 @@ PHP;
             'boolean' => "\\Filament\\Forms\\Components\\Toggle::make('{$name}')",
             'date' => "\\Filament\\Forms\\Components\\DatePicker::make('{$name}')",
             'select' => "\\Filament\\Forms\\Components\\Select::make('{$name}')->options(".$this->phpArray($field['options'] ?? []).')',
-            'media' => "\\Filament\\Forms\\Components\\FileUpload::make('{$name}')->image()->disk('public')->directory('cms')",
+            'media' => "\\Filament\\Forms\\Components\\SpatieMediaLibraryFileUpload::make('{$name}')->collection('{$name}')->image()".(empty($field['multiple']) ? '->singleFile()' : '->multiple()->reorderable()'),
             'link' => "\\Filament\\Forms\\Components\\TextInput::make('{$name}')->url()",
             'menu' => "\\Filament\\Forms\\Components\\Select::make('{$name}')->options(\\App\\Models\\Cms\\Menu::query()->pluck('name', 'id'))",
             default => "\\Filament\\Forms\\Components\\TextInput::make('{$name}')",

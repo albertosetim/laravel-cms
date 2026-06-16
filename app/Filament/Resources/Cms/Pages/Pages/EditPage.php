@@ -46,7 +46,7 @@ class EditPage extends EditRecord
     {
         return [
             Action::make('preview')
-                ->label('Preview')
+                ->label(__('Preview'))
                 ->icon('heroicon-o-eye')
                 ->url(fn (Page $record) => URL::temporarySignedRoute('cms.page', now()->addMinutes(30), [
                     'locale' => $record->locale,
@@ -56,7 +56,7 @@ class EditPage extends EditRecord
                 ->openUrlInNewTab(),
 
             Action::make('publish')
-                ->label('Publicar')
+                ->label(__('Publish'))
                 ->icon('heroicon-o-rocket-launch')
                 ->color('success')
                 ->requiresConfirmation()
@@ -67,11 +67,11 @@ class EditPage extends EditRecord
 
                     app(PagePublisher::class)->publish($record->refresh(), auth()->id());
 
-                    Notification::make()->title('Página publicada.')->success()->send();
+                    Notification::make()->title(__('Page published.'))->success()->send();
                 }),
 
             Action::make('unpublish')
-                ->label('Despublicar')
+                ->label(__('Unpublish'))
                 ->icon('heroicon-o-eye-slash')
                 ->color('warning')
                 ->requiresConfirmation()
@@ -79,7 +79,7 @@ class EditPage extends EditRecord
                 ->action(function (Page $record) {
                     app(PagePublisher::class)->unpublish($record);
 
-                    Notification::make()->title('Página despublicada.')->warning()->send();
+                    Notification::make()->title(__('Page unpublished.'))->warning()->send();
                 }),
 
             DeleteAction::make(),

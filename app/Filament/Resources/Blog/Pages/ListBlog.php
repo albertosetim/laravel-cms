@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Blog\Pages;
 
+use App\Filament\Actions\TypeSettingsAction;
 use App\Filament\Resources\Blog\BlogResource;
 use Filament\Resources\Pages\ListRecords;
 
@@ -11,6 +12,9 @@ class ListBlog extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return [\Filament\Actions\CreateAction::make()];
+        return [
+            TypeSettingsAction::make()->settingsModel(static::getResource()::getModel()),
+            \Filament\Actions\CreateAction::make(),
+        ];
     }
 }

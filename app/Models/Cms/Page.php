@@ -2,6 +2,7 @@
 
 namespace App\Models\Cms;
 
+use App\Models\Concerns\HasSettings;
 use App\Services\Cms\PageTree;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +15,7 @@ use Spatie\Activitylog\Support\LogOptions;
 
 class Page extends Model
 {
+    use HasSettings;
     use LogsActivity;
     use SoftDeletes;
 

@@ -22,15 +22,27 @@ class RoleResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShieldCheck;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'System';
+    protected static ?int $navigationSort = 1;
 
-    protected static ?string $navigationLabel = 'Roles';
+    public static function getNavigationGroup(): ?string
+    {
+        return __('Permissions');
+    }
 
-    protected static ?string $modelLabel = 'role';
+    public static function getNavigationLabel(): string
+    {
+        return __('Roles');
+    }
 
-    protected static ?string $pluralModelLabel = 'roles';
+    public static function getModelLabel(): string
+    {
+        return __('role');
+    }
 
-    protected static ?int $navigationSort = 3;
+    public static function getPluralModelLabel(): string
+    {
+        return __('roles');
+    }
 
     public static function canAccess(): bool
     {
@@ -41,10 +53,10 @@ class RoleResource extends Resource
     {
         return $schema->components([
             Section::make()->columns(2)->schema([
-                TextInput::make('name')->label('Nome')->required()->unique(ignoreRecord: true),
-                TextInput::make('guard_name')->label('Guard')->default('web')->required(),
+                TextInput::make('name')->label(__('Name'))->required()->unique(ignoreRecord: true),
+                TextInput::make('guard_name')->label(__('Guard'))->default('web')->required(),
                 Select::make('permissions')
-                    ->label('Permissões')
+                    ->label(__('Permissions'))
                     ->relationship('permissions', 'name')
                     ->multiple()
                     ->preload()
@@ -58,9 +70,9 @@ class RoleResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('name')->label('Nome')->badge()->searchable(),
-                TextColumn::make('guard_name')->label('Guard')->color('gray'),
-                TextColumn::make('permissions_count')->label('Permissões')->counts('permissions'),
+                TextColumn::make('name')->label(__('Name'))->badge()->searchable(),
+                TextColumn::make('guard_name')->label(__('Guard'))->color('gray'),
+                TextColumn::make('permissions_count')->label(__('Permissions'))->counts('permissions'),
             ])
             ->defaultSort('name');
     }

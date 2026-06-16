@@ -24,11 +24,11 @@ class PageForm
     {
         return $schema->components([
             Tabs::make()->columnSpanFull()->tabs([
-                Tab::make('Conteúdo')->schema([
+                Tab::make(__('Content'))->schema([
                     // O documento de blocos da DRAFT revision — hidratado e
                     // persistido pelas páginas Create/Edit, nunca coluna da Page.
                     Builder::make('blocks')
-                        ->label('Blocos')
+                        ->label(__('Blocks'))
                         ->blocks(self::builderBlocks())
                         ->reorderable()
                         ->collapsible()
@@ -36,9 +36,9 @@ class PageForm
                         ->dehydrated()
                         ->columnSpanFull(),
                 ]),
-                Tab::make('Página')->schema([
+                Tab::make(__('Page'))->schema([
                     Section::make()->columns(2)->schema([
-                        TextInput::make('name')->label('Nome interno')->required(),
+                        TextInput::make('name')->label(__('Internal name'))->required(),
                         TextInput::make('slug')
                             ->required()
                             ->alphaDash()
@@ -51,36 +51,36 @@ class PageForm
                                     ->where('parent_id', $get('parent_id'))
                                     ->where('locale', $get('locale')),
                             )
-                            ->helperText('Único entre irmãos do mesmo parent e locale.'),
+                            ->helperText(__('Unique among siblings of the same parent and locale.')),
                         Select::make('template')
                             ->options(self::templates())
                             ->default('default')
                             ->required(),
                         Select::make('layout')
-                            ->label('Layout (grelha)')
+                            ->label(__('Layout (grid)'))
                             ->options(self::layouts())
                             ->default('full')
                             ->live()
                             ->required()
-                            ->helperText('Distribui os blocos por colunas. Cada bloco escolhe a sua coluna.'),
+                            ->helperText(__('Distributes the blocks across columns. Each block chooses its column.')),
                         Select::make('locale')
                             ->options(array_combine(config('cms.locales'), config('cms.locales')))
                             ->default(config('cms.default_locale'))
                             ->required(),
                         Select::make('parent_id')
-                            ->label('Página mãe')
+                            ->label(__('Parent page'))
                             ->options(fn (?Page $record) => Page::query()
                                 ->when($record, fn ($q) => $q->whereKeyNot($record->getKey()))
                                 ->orderBy('name')
                                 ->pluck('name', 'id'))
                             ->searchable()
-                            ->placeholder('— raiz —'),
-                        Toggle::make('show_in_menu')->label('Mostrar no menu')->default(true)->inline(false),
+                            ->placeholder(__('— root —')),
+                        Toggle::make('show_in_menu')->label(__('Show in menu'))->default(true)->inline(false),
                     ]),
                 ]),
                 Tab::make('SEO')->schema([
-                    TextInput::make('seo_title')->label('Title'),
-                    Textarea::make('seo_description')->label('Description')->rows(3),
+                    TextInput::make('seo_title')->label(__('Title')),
+                    Textarea::make('seo_description')->label(__('Description'))->rows(3),
                 ]),
             ]),
         ]);
@@ -107,7 +107,7 @@ class PageForm
     private static function columnPicker(): Select
     {
         return Select::make('__column')
-            ->label('Coluna')
+            ->label(__('Column'))
             ->options(fn (Get $get) => self::columnOptions($get('layout', isAbsolute: true)))
             ->default(1)
             ->visible(fn (Get $get) => count(self::columnOptions($get('layout', isAbsolute: true))) > 1)
@@ -119,7 +119,7 @@ class PageForm
         $count = count(config("cms.layouts.{$layout}.columns", [12]));
 
         return collect(range(1, $count))
-            ->mapWithKeys(fn (int $n) => [$n => 'Coluna '.$n])
+            ->mapWithKeys(fn (int $n) => [$n => __('Column').' '.$n])
             ->all();
     }
 

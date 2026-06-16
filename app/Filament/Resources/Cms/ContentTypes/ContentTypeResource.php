@@ -37,22 +37,34 @@ class ContentTypeResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCube;
 
-    protected static ?string $navigationLabel = 'Tipos de conteúdo';
-
-    protected static string|\UnitEnum|null $navigationGroup = 'System';
-
-    protected static ?string $modelLabel = 'tipo de conteúdo';
-
-    protected static ?string $pluralModelLabel = 'tipos de conteúdo';
-
     protected static ?int $navigationSort = 1;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('System');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('Content types');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('content type');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('content types');
+    }
 
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
             Section::make()->columns(3)->schema([
                 TextInput::make('name')
-                    ->label('Nome')
+                    ->label(__('Name'))
                     ->required()
                     ->live(onBlur: true)
                     ->afterStateUpdated(fn ($state, callable $set, string $operation) => $operation === 'create'
@@ -63,51 +75,51 @@ class ContentTypeResource extends Resource
                     ->alphaDash()
                     ->unique(ignoreRecord: true)
                     ->disabledOn('edit')
-                    ->helperText('Vira o nome da tabela/model gerado.'),
+                    ->helperText(__('Becomes the name of the generated table/model.')),
                 TextInput::make('icon')
-                    ->label('Ícone (heroicon)')
+                    ->label(__('Icon (heroicon)'))
                     ->placeholder('heroicon-o-users'),
             ]),
-            Section::make('Campos')
-                ->description('Cada campo vira uma coluna tipada na tabela gerada.')
+            Section::make(__('Fields'))
+                ->description(__('Each field becomes a typed column in the generated table.'))
                 ->schema([
                     Repeater::make('blueprint.fields')
                         ->hiddenLabel()
                         ->reorderable()
                         ->collapsible()
                         ->itemLabel(fn (array $state) => $state['label'] ?? $state['name'] ?? null)
-                        ->addActionLabel('Adicionar campo')
+                        ->addActionLabel(__('Add field'))
                         ->schema([
-                            TextInput::make('name')->required()->alphaDash()->label('Nome técnico'),
-                            TextInput::make('label')->label('Label'),
+                            TextInput::make('name')->required()->alphaDash()->label(__('Technical name')),
+                            TextInput::make('label')->label(__('Label')),
                             Select::make('type')
                                 ->required()
                                 ->default('text')
                                 ->live()
                                 ->options([
-                                    'text' => 'Texto',
-                                    'textarea' => 'Texto longo',
-                                    'richtext' => 'Rich text',
-                                    'number' => 'Número',
-                                    'boolean' => 'Sim/Não',
-                                    'date' => 'Data',
-                                    'select' => 'Seleção',
-                                    'media' => 'Imagem',
-                                    'link' => 'Link (URL)',
-                                    'menu' => 'Menu',
+                                    'text' => __('Text'),
+                                    'textarea' => __('Long text'),
+                                    'richtext' => __('Rich text'),
+                                    'number' => __('Number'),
+                                    'boolean' => __('Yes/No'),
+                                    'date' => __('Date'),
+                                    'select' => __('Selection'),
+                                    'media' => __('Image'),
+                                    'link' => __('Link (URL)'),
+                                    'menu' => __('Menu'),
                                 ]),
-                            Toggle::make('required')->label('Obrigatório')->inline(false),
+                            Toggle::make('required')->label(__('Required'))->inline(false),
                             TagsInput::make('options')
-                                ->label('Opções')
+                                ->label(__('Options'))
                                 ->visible(fn (Get $get) => $get('type') === 'select'),
                             Toggle::make('listable')
-                                ->label('Mostrar na listagem (coluna indexada)')
+                                ->label(__('Show in listing (indexed column)'))
                                 ->inline(false),
                         ])
                         ->columns(3),
                 ]),
-            Section::make('Relações')
-                ->description('Relações entre tabelas, geradas no Model, na Migration (FK/pivot) e no Resource.')
+            Section::make(__('Relations'))
+                ->description(__('Relations between tables, generated in the Model, the Migration (FK/pivot) and the Resource.'))
                 ->schema([
                     Repeater::make('relation_defs')
                         ->hiddenLabel()
@@ -115,24 +127,24 @@ class ContentTypeResource extends Resource
                         ->collapsible()
                         ->defaultItems(0)
                         ->itemLabel(fn (array $state) => ($state['name'] ?? '').' ('.($state['type'] ?? '').')')
-                        ->addActionLabel('Adicionar relação')
+                        ->addActionLabel(__('Add relation'))
                         ->schema([
                             TextInput::make('name')
                                 ->required()
                                 ->alphaDash()
-                                ->label('Nome da relação')
-                                ->helperText('ex.: category, tags, comments'),
+                                ->label(__('Relation name'))
+                                ->helperText(__('e.g.: category, tags, comments')),
                             Select::make('type')
                                 ->required()
                                 ->default('belongsTo')
                                 ->options([
-                                    'belongsTo' => 'Pertence a (belongsTo) — FK nesta tabela',
-                                    'belongsToMany' => 'Muitos-para-muitos (belongsToMany) — tabela pivot',
-                                    'hasMany' => 'Tem muitos (hasMany) — inverso de um belongsTo',
+                                    'belongsTo' => __('Belongs to (belongsTo) — FK on this table'),
+                                    'belongsToMany' => __('Many-to-many (belongsToMany) — pivot table'),
+                                    'hasMany' => __('Has many (hasMany) — inverse of a belongsTo'),
                                 ]),
                             Select::make('target')
                                 ->required()
-                                ->label('Tabela/model alvo')
+                                ->label(__('Target table/model'))
                                 ->options(fn () => self::relationTargets())
                                 ->searchable(),
                         ])
@@ -149,13 +161,13 @@ class ContentTypeResource extends Resource
         $types = ContentType::query()
             ->orderBy('name')
             ->get()
-            ->mapWithKeys(fn (ContentType $t) => [$generator->modelClass($t) => $t->name.' (tipo)'])
+            ->mapWithKeys(fn (ContentType $t) => [$generator->modelClass($t) => $t->name.' ('.__('type').')'])
             ->all();
 
         $core = [
-            \App\Models\Cms\Page::class => 'Páginas (core)',
-            \App\Models\Cms\Menu::class => 'Menus (core)',
-            \App\Models\User::class => 'Utilizadores (core)',
+            \App\Models\Cms\Page::class => __('Pages (core)'),
+            \App\Models\Cms\Menu::class => __('Menus (core)'),
+            \App\Models\User::class => __('Users (core)'),
         ];
 
         return $types + $core;
@@ -165,22 +177,22 @@ class ContentTypeResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('name')->label('Nome')->searchable(),
+                TextColumn::make('name')->label(__('Name'))->searchable(),
                 TextColumn::make('slug')->badge(),
                 TextColumn::make('fields_count')
-                    ->label('Campos')
+                    ->label(__('Fields'))
                     ->state(fn (ContentType $r) => count($r->fields())),
-                IconColumn::make('generated')->label('Gerado')->boolean(),
-                TextColumn::make('updated_at')->label('Atualizado')->dateTime('d.m.Y H:i'),
+                IconColumn::make('generated')->label(__('Generated'))->boolean(),
+                TextColumn::make('updated_at')->label(__('Updated'))->dateTime('d.m.Y H:i'),
             ])
             ->recordActions([
                 Action::make('generate')
-                    ->label('Gerar código')
+                    ->label(__('Generate code'))
                     ->icon('heroicon-o-cpu-chip')
                     ->color('success')
                     ->visible(fn (ContentType $record) => ! $record->generated)
                     ->requiresConfirmation()
-                    ->modalDescription('Gera Model + Migration + Resource reais e corre migrate. Os ficheiros entram no git.')
+                    ->modalDescription(__('Generates real Model + Migration + Resource and runs migrate. The files are committed to git.'))
                     ->action(fn (ContentType $record) => self::runGenerate($record)),
                 \Filament\Actions\EditAction::make(),
             ]);
@@ -192,7 +204,7 @@ class ContentTypeResource extends Resource
         try {
             $written = app(TypeGenerator::class)->generate($record);
         } catch (\RuntimeException $e) {
-            Notification::make()->title('Não foi possível gerar')->body($e->getMessage())->danger()->send();
+            Notification::make()->title(__('Could not generate'))->body($e->getMessage())->danger()->send();
 
             return;
         }
@@ -200,8 +212,8 @@ class ContentTypeResource extends Resource
         Artisan::call('migrate', ['--force' => true]);
 
         Notification::make()
-            ->title($record->name.' gerado')
-            ->body(count($written).' ficheiro(s) escritos e migrados. Aparece agora em "Conteúdos" no menu.')
+            ->title($record->name.' '.__('generated'))
+            ->body(count($written).' '.__('file(s) written and migrated. Now appears under "Content" in the menu.'))
             ->success()
             ->send();
     }

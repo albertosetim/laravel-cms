@@ -65,5 +65,5 @@ it('mostra o rascunho via preview assinado, nunca sem assinatura', function () {
 });
 
 it('redireciona / para o locale default', function () {
-    $this->get('/')->assertRedirect('/de');
+    $this->get('/')->assertRedirect('/'.config('cms.default_locale'));
 });

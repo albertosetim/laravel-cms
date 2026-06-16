@@ -23,15 +23,27 @@ class UserResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'System';
-
-    protected static ?string $navigationLabel = 'Utilizadores';
-
-    protected static ?string $modelLabel = 'utilizador';
-
-    protected static ?string $pluralModelLabel = 'utilizadores';
-
     protected static ?int $navigationSort = 2;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('System');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('Users');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('user');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('users');
+    }
 
     /** Gestão de utilizadores é exclusiva de admins. */
     public static function canAccess(): bool
@@ -43,10 +55,10 @@ class UserResource extends Resource
     {
         return $schema->components([
             Section::make()->columns(2)->schema([
-                TextInput::make('name')->label('Nome')->required(),
-                TextInput::make('email')->label('Email')->email()->required()->unique(ignoreRecord: true),
+                TextInput::make('name')->label(__('Name'))->required(),
+                TextInput::make('email')->label(__('Email'))->email()->required()->unique(ignoreRecord: true),
                 TextInput::make('password')
-                    ->label('Password')
+                    ->label(__('Password'))
                     ->password()
                     ->revealable()
                     // hashing explícito; só grava quando preenchida (edit mantém a atual).
@@ -54,18 +66,24 @@ class UserResource extends Resource
                     ->dehydrated(fn (?string $state) => filled($state))
                     ->required(fn (string $operation) => $operation === 'create'),
             ]),
-            Section::make('Acesso')->columns(2)->schema([
+            Section::make(__('Access'))->columns(2)->schema([
                 Select::make('roles')
-                    ->label('Roles')
+                    ->label(__('Roles'))
                     ->relationship('roles', 'name')
                     ->multiple()
                     ->preload()
-                    ->helperText('Os roles definem o que o utilizador pode fazer.'),
+                    ->helperText(__('Roles define what the user can do.')),
                 Select::make('groups')
-                    ->label('Grupos')
+                    ->label(__('Groups'))
                     ->relationship('groups', 'name')
                     ->multiple()
                     ->preload(),
+                Select::make('locale')
+                    ->label(__('Panel language'))
+                    ->options(\App\Support\Locales::options())
+                    ->placeholder(__('Site default').' ('.\App\Support\Locales::default().')')
+                    ->native(false)
+                    ->helperText(__('The language this user sees the panel in.')),
             ]),
         ]);
     }
@@ -74,11 +92,11 @@ class UserResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('name')->label('Nome')->searchable()->sortable(),
-                TextColumn::make('email')->searchable()->sortable(),
-                TextColumn::make('roles.name')->label('Roles')->badge(),
-                TextColumn::make('groups.name')->label('Grupos')->badge()->color('gray'),
-                TextColumn::make('created_at')->label('Criado')->dateTime('d.m.Y')->sortable(),
+                TextColumn::make('name')->label(__('Name'))->searchable()->sortable(),
+                TextColumn::make('email')->label(__('Email'))->searchable()->sortable(),
+                TextColumn::make('roles.name')->label(__('Roles'))->badge(),
+                TextColumn::make('groups.name')->label(__('Groups'))->badge()->color('gray'),
+                TextColumn::make('created_at')->label(__('Created'))->dateTime('d.m.Y')->sortable(),
             ])
             ->defaultSort('name');
     }

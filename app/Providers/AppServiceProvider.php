@@ -5,6 +5,11 @@ namespace App\Providers;
 use App\Cms\Blocks\BlockRegistry;
 use App\Cms\Blocks\SchemaCollector;
 use App\Cms\Render\CmsRenderContext;
+use App\Models\Cms\ContentType;
+use App\Models\Cms\Page;
+use App\Models\User;
+use App\Policies\Cms\ContentTypePolicy;
+use App\Policies\Cms\PagePolicy;
 use App\View\Components\Cms\Block;
 use App\View\Components\Cms\Blocks;
 use App\View\Components\Cms\Field;
@@ -26,12 +31,40 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        Gate::policy(\App\Models\Cms\Page::class, \App\Policies\Cms\PagePolicy::class);
-        Gate::policy(\App\Models\Cms\ContentType::class, \App\Policies\Cms\ContentTypePolicy::class);
+        Gate::policy(Page::class, PagePolicy::class);
+        Gate::policy(ContentType::class, ContentTypePolicy::class);
+
+        // Acesso aos System Logs (storage/logs) restrito a administradores.
+        Gate::define('viewSystemLogs', fn (User $user) => $user->hasRole('admin'));
+
+        // Gestão das settings (geral + por tipo) restrita a administradores.
+        Gate::define('manageSettings', fn (User $user) => $user->hasRole('admin'));
+
+        $this->applyTimezone();
 
         Blade::component('cms.blocks', Blocks::class);
         Blade::component('cms.block', Block::class);
         Blade::component('cms.field', Field::class);
         Blade::component('cms.repeater', Repeater::class);
+    }
+
+    /**
+     * Timezone vinda das general settings (DB ?? .env). Defensivo: em console
+     * (migrate, antes da tabela existir) ou se as settings falharem, não rebenta.
+     */
+    private function applyTimezone(): void
+    {
+        if ($this->app->runningInConsole()) {
+            return;
+        }
+
+        try {
+            if ($tz = \App\Support\Settings::general()->get('timezone')) {
+                date_default_timezone_set($tz);
+                config(['app.timezone' => $tz]);
+            }
+        } catch (\Throwable) {
+            // settings ainda não disponíveis — ignora.
+        }
     }
 }

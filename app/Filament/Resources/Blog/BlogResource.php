@@ -15,20 +15,26 @@ class BlogResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Conteúdos';
-
-    protected static ?string $navigationLabel = 'Blog';
-
     protected static ?string $recordTitleAttribute = 'title';
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('Content');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('Blog');
+    }
 
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
             \Filament\Schemas\Components\Section::make()->columns(2)->schema([
-                \Filament\Forms\Components\TextInput::make('title')->label('Title'),
+                \Filament\Forms\Components\TextInput::make('title')->label(__('Title')),
                 \Filament\Forms\Components\TextInput::make('slug')->alphaDash(),
                 \Filament\Forms\Components\Select::make('status')
-                    ->options(['draft' => 'Rascunho', 'published' => 'Publicado'])
+                    ->options(['draft' => __('Draft'), 'published' => __('Published')])
                     ->default('draft')
                     ->required(),
             ]),

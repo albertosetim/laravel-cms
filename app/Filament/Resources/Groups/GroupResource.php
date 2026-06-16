@@ -23,15 +23,27 @@ class GroupResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'System';
+    protected static ?int $navigationSort = 2;
 
-    protected static ?string $navigationLabel = 'Grupos';
+    public static function getNavigationGroup(): ?string
+    {
+        return __('Permissions');
+    }
 
-    protected static ?string $modelLabel = 'grupo';
+    public static function getNavigationLabel(): string
+    {
+        return __('Groups');
+    }
 
-    protected static ?string $pluralModelLabel = 'grupos';
+    public static function getModelLabel(): string
+    {
+        return __('group');
+    }
 
-    protected static ?int $navigationSort = 4;
+    public static function getPluralModelLabel(): string
+    {
+        return __('groups');
+    }
 
     public static function canAccess(): bool
     {
@@ -43,16 +55,16 @@ class GroupResource extends Resource
         return $schema->components([
             Section::make()->columns(2)->schema([
                 TextInput::make('name')
-                    ->label('Nome')
+                    ->label(__('Name'))
                     ->required()
                     ->live(onBlur: true)
                     ->afterStateUpdated(fn ($state, callable $set, string $operation) => $operation === 'create'
                         ? $set('slug', str($state)->slug()->toString())
                         : null),
                 TextInput::make('slug')->required()->alphaDash()->unique(ignoreRecord: true),
-                Textarea::make('description')->label('Descrição')->rows(2)->columnSpanFull(),
+                Textarea::make('description')->label(__('Description'))->rows(2)->columnSpanFull(),
                 Select::make('users')
-                    ->label('Membros')
+                    ->label(__('Members'))
                     ->relationship('users', 'name')
                     ->multiple()
                     ->preload()
@@ -66,9 +78,9 @@ class GroupResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('name')->label('Nome')->searchable(),
+                TextColumn::make('name')->label(__('Name'))->searchable(),
                 TextColumn::make('slug')->badge()->color('gray'),
-                TextColumn::make('users_count')->label('Membros')->counts('users'),
+                TextColumn::make('users_count')->label(__('Members'))->counts('users'),
             ])
             ->defaultSort('name');
     }

@@ -50,6 +50,9 @@ it('gera um model + migration + resource e a tabela fica tipada', function () {
         ->and(Schema::hasColumn('testcategories', 'name'))->toBeTrue()
         ->and(Schema::hasColumn('testcategories', 'active'))->toBeTrue();
 
+    // O trait HasSettings é injetado nos models gerados.
+    expect(method_exists(\App\Models\Testcategory::class, 'settings'))->toBeTrue();
+
     expect($type->refresh()->generated)->toBeTrue();
     expect($written)->not->toBeEmpty();
 });
@@ -102,8 +105,8 @@ it('criar um tipo no designer gera logo o codigo e fica sob Conteudos', function
         ->and(\Illuminate\Support\Facades\Schema::hasTable('widgets'))->toBeTrue()
         ->and(\App\Models\Cms\ContentType::where('slug', 'widget')->value('generated'))->toBeTrue();
 
-    // O resource gerado declara o grupo "Conteúdos" do menu lateral.
-    expect(\App\Filament\Resources\Widget\WidgetResource::getNavigationGroup())->toBe('Conteúdos');
+    // O resource gerado declara o grupo "Content" (traduzido) do menu lateral.
+    expect(\App\Filament\Resources\Widget\WidgetResource::getNavigationGroup())->toBe(__('Content'));
 });
 
 it('recusa-se a esmagar um model já gerado', function () {

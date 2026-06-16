@@ -30,22 +30,34 @@ class MenuResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBars3;
 
-    protected static ?string $navigationLabel = 'Menus';
-
-    protected static string|\UnitEnum|null $navigationGroup = 'Estrutura';
-
-    protected static ?string $modelLabel = 'menu';
-
-    protected static ?string $pluralModelLabel = 'menus';
-
     protected static ?int $navigationSort = 2;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('Menus');
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('Structure');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('menu');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('menus');
+    }
 
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
             Section::make()->columns(2)->schema([
                 TextInput::make('name')
-                    ->label('Nome')
+                    ->label(__('Name'))
                     ->required()
                     ->live(onBlur: true)
                     ->afterStateUpdated(fn ($state, callable $set, string $operation) => $operation === 'create'
@@ -53,9 +65,9 @@ class MenuResource extends Resource
                         : null),
                 TextInput::make('slug')->required()->alphaDash()->unique(ignoreRecord: true),
             ]),
-            Section::make('Itens')->schema([
+            Section::make(__('Items'))->schema([
                 self::itemsRepeater('items')
-                    ->label('Itens do menu'),
+                    ->label(__('Menu items')),
             ]),
         ]);
     }
@@ -67,7 +79,7 @@ class MenuResource extends Resource
 
         if ($allowChildren) {
             $schema[] = self::itemsRepeater('children', allowChildren: false)
-                ->label('Sub-itens')
+                ->label(__('Sub-items'))
                 ->columnSpanFull();
         }
 
@@ -78,22 +90,22 @@ class MenuResource extends Resource
             ->collapsible()
             ->cloneable()
             ->itemLabel(fn (array $state) => $state['label'] ?? null)
-            ->addActionLabel('Adicionar item')
+            ->addActionLabel(__('Add item'))
             ->defaultItems(0);
     }
 
     private static function itemFields(): array
     {
         return [
-            TextInput::make('label')->label('Texto')->required(),
+            TextInput::make('label')->label(__('Text'))->required(),
             Select::make('type')
-                ->label('Destino')
-                ->options(['page' => 'Página', 'url' => 'URL externo'])
+                ->label(__('Destination'))
+                ->options(['page' => __('Page'), 'url' => __('External URL')])
                 ->default('page')
                 ->live()
                 ->required(),
             Select::make('page_id')
-                ->label('Página')
+                ->label(__('Page'))
                 ->options(fn () => Page::query()->orderBy('name')->get()->mapWithKeys(
                     fn (Page $p) => [$p->id => $p->name.' ('.$p->locale.')'],
                 ))
@@ -112,12 +124,12 @@ class MenuResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('name')->label('Nome')->searchable(),
+                TextColumn::make('name')->label(__('Name'))->searchable(),
                 TextColumn::make('slug')->badge(),
                 TextColumn::make('items')
-                    ->label('Itens')
+                    ->label(__('Items'))
                     ->state(fn (Menu $record) => count($record->items ?? [])),
-                TextColumn::make('updated_at')->label('Atualizado')->dateTime('d.m.Y H:i')->sortable(),
+                TextColumn::make('updated_at')->label(__('Updated'))->dateTime('d.m.Y H:i')->sortable(),
             ]);
     }
 

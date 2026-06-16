@@ -21,7 +21,7 @@ class PagesTable
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->label('Página')
+                    ->label(__('Page'))
                     ->searchable(),
                 TextColumn::make('path')
                     ->label('Path')
@@ -30,8 +30,8 @@ class PagesTable
                 TextColumn::make('status')
                     ->badge()
                     ->color(fn (string $state) => $state === Page::STATUS_PUBLISHED ? 'success' : 'gray'),
-                IconColumn::make('show_in_menu')->label('Menu')->boolean(),
-                TextColumn::make('updated_at')->label('Atualizada')->dateTime('d.m.Y H:i')->sortable(),
+                IconColumn::make('show_in_menu')->label(__('Menu'))->boolean(),
+                TextColumn::make('updated_at')->label(__('Updated'))->dateTime('d.m.Y H:i')->sortable(),
             ])
             ->defaultSort('position')
             ->modifyQueryUsing(fn ($query) => $query->orderBy('parent_id', 'asc')->orderBy('position'))
@@ -40,8 +40,8 @@ class PagesTable
                     ->options(fn () => array_combine(config('cms.locales'), config('cms.locales'))),
                 SelectFilter::make('status')
                     ->options([
-                        Page::STATUS_DRAFT => 'Rascunho',
-                        Page::STATUS_PUBLISHED => 'Publicada',
+                        Page::STATUS_DRAFT => __('Draft'),
+                        Page::STATUS_PUBLISHED => __('Published'),
                     ]),
                 TrashedFilter::make(),
             ])

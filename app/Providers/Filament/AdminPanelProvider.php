@@ -6,10 +6,12 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationGroup;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Enums\Width;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -28,13 +30,17 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->profile(\App\Filament\Pages\EditProfile::class, isSimple: false)
+            ->maxContentWidth(Width::Full)
             ->colors([
                 'primary' => Color::Amber,
             ])
             ->navigationGroups([
-                'Conteúdos',
-                'Estrutura',
-                'System',
+                // Labels via closure → traduzidos por-request (casam com getNavigationGroup() dos resources).
+                NavigationGroup::make(fn (): string => __('Content')),
+                NavigationGroup::make(fn (): string => __('Structure')),
+                NavigationGroup::make(fn (): string => __('Permissions')),
+                NavigationGroup::make(fn (): string => __('System')),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
@@ -56,6 +62,7 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                \App\Http\Middleware\SetPanelLocale::class,
             ])
             ->authMiddleware([
                 Authenticate::class,

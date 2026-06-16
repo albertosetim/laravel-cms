@@ -286,10 +286,13 @@ PHP;
 
 namespace App\Models;
 
+use App\Models\Concerns\HasSettings;
 use Illuminate\Database\Eloquent\Model;
 
 class {$studly} extends Model
 {
+    use HasSettings;
+
     protected \$fillable = [{$fillableStr}];
 
     protected function casts(): array
@@ -381,11 +384,14 @@ class {$studly}Resource extends Resource
 
     protected static string|\BackedEnum|null \$navigationIcon = '{$icon}';
 
-    protected static string|\UnitEnum|null \$navigationGroup = 'Conteúdos';
-
     protected static ?string \$navigationLabel = '{$type->name}';
 
     protected static ?string \$recordTitleAttribute = '{$this->ownTitleAttr($type)}';
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('Content');
+    }
 
     public static function form(Schema \$schema): Schema
     {
@@ -470,7 +476,7 @@ PHP;
     {
         $studly = $this->studly($type);
         $extra = match ($action) {
-            'List' => "\n    protected function getHeaderActions(): array\n    {\n        return [\\Filament\\Actions\\CreateAction::make()];\n    }\n",
+            'List' => "\n    protected function getHeaderActions(): array\n    {\n        return [\n            \\App\\Filament\\Actions\\TypeSettingsAction::make()->settingsModel(static::getResource()::getModel()),\n            \\Filament\\Actions\\CreateAction::make(),\n        ];\n    }\n",
             'Edit' => "\n    protected function getHeaderActions(): array\n    {\n        return [\\Filament\\Actions\\DeleteAction::make()];\n    }\n",
             default => '',
         };

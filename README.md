@@ -22,8 +22,8 @@ The result is a CMS that behaves like a normal Laravel app: every content type i
 reviewable, version-controlled code you fully own.
 
 > ⚠️ **Architecture note.** By product decision, the admin's *Generate code* button writes
-> files and runs `migrate` in **any environment** — this intentionally departs from the
-> original blueprint's rule G1 (no runtime codegen). Production implications: ephemeral or
+> files and runs `migrate` in **any environment** — a deliberate departure from a strict
+> no-runtime-codegen policy. Production implications: ephemeral or
 > read-only filesystems (containers), multi-server setups (files land on a single node),
 > DDL without rollback, and the next git deploy may overwrite generated files. **In
 > production, prefer running `cms:make:type {slug}` in the pipeline and committing the
@@ -36,7 +36,7 @@ reviewable, version-controlled code you fully own.
   base **layout grid** (full width, 6+6, 8+4, 4+4+4, …) — each block picks its column on a
   12-column grid.
 - **Menus** (name + slug + a two-level item tree), placeable on a page via the *Menu* block.
-- **Content types** defined in the admin (JSON blueprint). Each type gets its **own
+- **Content types** defined in the admin (stored as a JSON definition). Each type gets its **own
   sidebar entry** (under *Content*) with a filtered CRUD.
 
 **Settings** (polymorphic, media-library style)
@@ -67,7 +67,7 @@ reviewable, version-controlled code you fully own.
 |-------------|------------|
 | Framework   | Laravel 13 · PHP 8.3+ |
 | Admin panel | Filament 5 · Livewire · Alpine.js · Tailwind CSS 4 |
-| Database    | PostgreSQL 17 (JSONB + GIN for queryable blueprints) |
+| Database    | PostgreSQL 17 (JSONB + GIN for queryable content-type definitions) |
 | Packages    | Spatie `laravel-permission`, `laravel-medialibrary`, `laravel-activitylog` |
 | Tooling     | DDEV (local environment) · Pest (tests) |
 
@@ -116,7 +116,7 @@ Locales live in `config/cms.php` (`locales`, `default_locale`).
 | Command | Purpose |
 |---------|---------|
 | `cms:make:type {slug} [--migrate]` | Generate Model + Migration + Resource from a content type |
-| `cms:build [--check]` | Extract block blueprints to `resources/data/blocks.json` (committed) |
+| `cms:build [--check]` | Extract block definitions to `resources/data/blocks.json` (committed) |
 | `cms:plugins:sync` | Discover plugins, resolve dependencies, materialize the boot cache |
 | `cms:plugins:enable {slug}` / `cms:plugins:disable {slug}` | Toggle a plugin (deploy-time) |
 
@@ -132,8 +132,7 @@ Locales live in `config/cms.php` (`locales`, `default_locale`).
 
 ## Conventions
 
-The project follows the "golden rules" in `docs/blueprint/01-principios.md` (G1–G7). The
-original blueprint forbids runtime codegen (G1); this project makes a **deliberate
-exception** for the admin's *Generate code* button (see the architecture note above). The
-remaining rules hold: boot never reads the database, git is the source of truth, and there
-is no EAV.
+A few principles the project holds to: boot never reads the database, git is the source of
+truth, and there is no EAV — content always lives in typed tables. The one **deliberate
+exception** is the admin's *Generate code* button, which performs code generation at
+runtime (see the architecture note above).

@@ -1,80 +1,139 @@
-# laravel-cms
+# Laravel CMS
 
-CMS construído de raiz em Laravel puro, seguindo o blueprint "GodLike" (ver `docs/blueprint/`).
+> A content management system built from scratch in plain Laravel — content types are
+> designed in the admin and compiled into **real, typed code**, not stored as generic JSON.
 
-Define um **content type** no designer (campos + relações) e gera **Model + Migration +
-FilamentResource reais** com um clique (ou `cms:make:type`). O conteúdo vive em tabelas
-tipadas, não em jsonb genérico. O dev cria também **blocos** (Blade components) e
-**plugins** (ServiceProviders).
+<p>
+  <img alt="Laravel" src="https://img.shields.io/badge/Laravel-13-FF2D20?logo=laravel&logoColor=white">
+  <img alt="PHP" src="https://img.shields.io/badge/PHP-8.3+-777BB4?logo=php&logoColor=white">
+  <img alt="Filament" src="https://img.shields.io/badge/Filament-5-F59E0B">
+  <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-Pest-success">
+</p>
 
-> ⚠️ **Nota de arquitetura:** por decisão de produto, o botão "Gerar código" no admin
-> escreve ficheiros e corre `migrate` em **qualquer ambiente** — isto contraria a regra
-> G1 do blueprint original (zero codegen em runtime). Implicações em produção: filesystem
-> efémero/read-only (containers), multi-servidor (ficheiros só num nó), DDL sem rollback,
-> e o próximo deploy do git pode sobrepor-se ao gerado. Em produção, prefere o comando
-> `cms:make:type {slug}` no pipeline e commita o resultado.
+## Overview
 
-## Funcionalidades do backend
+Define a **content type** in the admin designer (fields + relations) and the CMS generates
+a real **Eloquent Model + Migration + Filament Resource** with a single click (or via
+`cms:make:type`). Content lives in **typed tables**, never in a generic EAV/JSON blob.
+Developers also author **blocks** (Blade components) and **plugins** (service providers).
 
-- **Páginas** com árvore, draft/publish, preview assinado e **layout base** (largura
-  total, 6+6, 8+4, 4+4+4, etc.) — cada bloco escolhe a sua coluna na grelha de 12.
-- **Tipos de conteúdo** definidos pelo admin (blueprint jsonb). Cada tipo ganha o
-  **seu próprio item no menu lateral** (grupo *Conteúdo*) com o CRUD filtrado.
-- **Menus** estilo Shopify (nome + slug + árvore de itens com 2 níveis), colocáveis
-  numa página através do bloco *Menu*.
-- **System** (só admins): Tipos de conteúdo, Utilizadores, Roles, Grupos.
-- Grupos de navegação: *Conteúdo* · *Estrutura* (Páginas, Menus) · *System*.
+The result is a CMS that behaves like a normal Laravel app: every content type is plain,
+reviewable, version-controlled code you fully own.
 
-## Stack
+> ⚠️ **Architecture note.** By product decision, the admin's *Generate code* button writes
+> files and runs `migrate` in **any environment** — this intentionally departs from the
+> original blueprint's rule G1 (no runtime codegen). Production implications: ephemeral or
+> read-only filesystems (containers), multi-server setups (files land on a single node),
+> DDL without rollback, and the next git deploy may overwrite generated files. **In
+> production, prefer running `cms:make:type {slug}` in the pipeline and committing the
+> result.**
 
-- Laravel 13 · PHP 8.4
-- Filament 5 (painel admin) · Livewire · Alpine.js · Tailwind CSS 4
-- PostgreSQL 17 (jsonb + GIN para tipos de admin consultáveis)
-- Spatie: laravel-permission, laravel-medialibrary, laravel-activitylog
-- DDEV para o ambiente local
+## Features
 
-## Desenvolvimento
+**Content & structure**
+- **Pages** with a tree hierarchy, draft/publish workflow, signed-URL preview, and a
+  base **layout grid** (full width, 6+6, 8+4, 4+4+4, …) — each block picks its column on a
+  12-column grid.
+- **Menus** (name + slug + a two-level item tree), placeable on a page via the *Menu* block.
+- **Content types** defined in the admin (JSON blueprint). Each type gets its **own
+  sidebar entry** (under *Content*) with a filtered CRUD.
+
+**Settings** (polymorphic, media-library style)
+- A `HasSettings` trait — auto-injected into generated models and applied to core models —
+  exposes per-type settings: `Blog::settings()->get('key')`.
+- **General settings** page (site name, contact, timezone, maintenance toggle) with
+  defaults and fallback read from `.env`.
+- Per-type settings via a *Settings* button on each content listing.
+- Maintenance mode is enforced on the public frontend; the admin stays reachable.
+
+**Localization**
+- Site locales and default are configured in `config/cms.php` (read by routing before any
+  DB query). The public frontend serves one page row per locale (`translation_group_id`).
+- The **admin panel UI is fully translatable**: strings use `__()` keys (English) with a
+  German translation in `lang/de.json`. Navigation groups translate per request.
+- **Per-user panel language**: users default to the site language and may pick another in
+  their profile or have it set in the user form.
+
+**Operations & access**
+- **System logs**: a native Filament page unifying the activity log (Spatie) and the
+  Laravel log files into one filterable table, with an IDE-style detail view.
+- **Role-based access** (Spatie permission): navigation group *Permissions* (Roles +
+  Groups); *System* tooling (content types, users, settings, logs) is admin-only.
+
+## Tech stack
+
+| Area        | Technology |
+|-------------|------------|
+| Framework   | Laravel 13 · PHP 8.3+ |
+| Admin panel | Filament 5 · Livewire · Alpine.js · Tailwind CSS 4 |
+| Database    | PostgreSQL 17 (JSONB + GIN for queryable blueprints) |
+| Packages    | Spatie `laravel-permission`, `laravel-medialibrary`, `laravel-activitylog` |
+| Tooling     | DDEV (local environment) · Pest (tests) |
+
+## Getting started
+
+Requires [DDEV](https://ddev.com).
 
 ```bash
 ddev start
+ddev exec composer install
 ddev exec php artisan migrate
-ddev exec php artisan db:seed --class=CmsSeeder   # roles, admin user, homepages de/en
-ddev exec npm run build                            # ou npm run dev
+ddev exec php artisan db:seed --class=CmsSeeder   # roles, admin user, de/en homepages
+ddev exec npm install && ddev exec npm run build  # or: npm run dev
 ```
 
-App: https://laravel-cms.ddev.site · Admin: https://laravel-cms.ddev.site/admin
-Login dev: `admin@laravel-cms.test` / `password` (alterar fora de dev).
+- **App:** https://laravel-cms.ddev.site
+- **Admin:** https://laravel-cms.ddev.site/admin
+- **Dev login:** `admin@laravel-cms.test` / `password` — change outside development.
 
-## Testes
+## Testing
 
-Correm contra Postgres real (DB `testing`, paridade jsonb/GIN — sqlite não cobre o CMS):
+Tests run against a **real PostgreSQL** database (`testing`) for JSONB/GIN parity — SQLite
+does not cover the CMS:
 
 ```bash
 ddev exec php artisan test
 ```
 
-## Comandos do CMS
+## Configuration
 
-| Comando | Função |
-|---|---|
-| `cms:build` | Extrai blueprints dos blocos para `resources/data/blocks.json` (committed) |
-| `cms:plugins:sync` | Descobre plugins, resolve dependências, materializa o cache de boot |
-| `cms:plugins:enable {slug}` / `disable {slug}` | Ativa/desativa plugin (deploy-time) |
-| `cms:make:type {slug} [--migrate]` | Gera Model + Migration + Resource a partir de um content type (designer) |
+Application settings are editable in the admin (**System → Settings**); their initial
+values and fallbacks come from `.env`:
 
-## Content types → models gerados
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `SETTINGS_SITE_NAME` | `web-crossing CMS` | Site name |
+| `SETTINGS_CONTACT_EMAIL` | `info@web-crossing.com` | Contact email |
+| `SETTINGS_CONTACT_PHONE` | `+43 512 206567` | Contact phone |
+| `SETTINGS_TIMEZONE` | `Europe/Vienna` | Application timezone |
+| `SETTINGS_MAINTENANCE_MODE` | `false` | Public maintenance mode |
 
-1. No admin, **System → Tipos de conteúdo**, cria um tipo: nome, campos (texto, rich
-   text, número, data, imagem, seleção, link, menu) e **relações** (belongsTo,
-   belongsToMany, hasMany) para outros tipos ou models do core.
-2. Clica **Gerar código** (ou corre `cms:make:type {slug} --migrate`).
-3. São escritos `app/Models/{Tipo}.php`, a migration (colunas tipadas + FK/pivot) e
-   `app/Filament/Resources/{Tipo}/...`. O resource aparece no grupo *Conteúdo* após
-   recarregar. A partir daí o dev é dono dos ficheiros (evolução = nova migration).
+Locales live in `config/cms.php` (`locales`, `default_locale`).
 
-## Regras de ouro
+## CMS commands
 
-Ver `docs/blueprint/01-principios.md` (G1–G7). O blueprint original proíbe codegen em
-runtime (G1); este projeto **abre uma exceção deliberada**: o botão "Gerar código" no
-admin gera ficheiros em qualquer ambiente (ver nota no topo). As restantes regras
-mantêm-se: boot nunca lê a DB, git é a autoridade, nada de EAV.
+| Command | Purpose |
+|---------|---------|
+| `cms:make:type {slug} [--migrate]` | Generate Model + Migration + Resource from a content type |
+| `cms:build [--check]` | Extract block blueprints to `resources/data/blocks.json` (committed) |
+| `cms:plugins:sync` | Discover plugins, resolve dependencies, materialize the boot cache |
+| `cms:plugins:enable {slug}` / `cms:plugins:disable {slug}` | Toggle a plugin (deploy-time) |
+
+## Content types → generated code
+
+1. In the admin, go to **System → Content types** and create a type: name, fields (text,
+   rich text, number, date, image, selection, link, menu) and **relations** (`belongsTo`,
+   `belongsToMany`, `hasMany`) to other types or core models.
+2. Click **Generate code** (or run `cms:make:type {slug} --migrate`).
+3. The CMS writes `app/Models/{Type}.php`, the migration (typed columns + FK/pivot) and
+   `app/Filament/Resources/{Type}/…`. The resource appears under *Content* after a reload.
+   From then on the developer owns the files — evolve the schema with new migrations.
+
+## Conventions
+
+The project follows the "golden rules" in `docs/blueprint/01-principios.md` (G1–G7). The
+original blueprint forbids runtime codegen (G1); this project makes a **deliberate
+exception** for the admin's *Generate code* button (see the architecture note above). The
+remaining rules hold: boot never reads the database, git is the source of truth, and there
+is no EAV.

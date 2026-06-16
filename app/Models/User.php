@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Cms\Group;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -9,6 +10,7 @@ use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
@@ -35,7 +37,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->hasAnyRole(['admin', 'editor', 'publisher']);
+        return $this->hasAnyRole(['admin', 'editor', 'publisher', 'developer']);
     }
 
     /** Idioma preferido do utilizador; cai no locale default do site. */
@@ -44,8 +46,8 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference
         return $this->locale ?: config('cms.default_locale');
     }
 
-    public function groups(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function groups(): BelongsToMany
     {
-        return $this->belongsToMany(\App\Models\Cms\Group::class, 'cms_group_user');
+        return $this->belongsToMany(Group::class, 'cms_group_user');
     }
 }

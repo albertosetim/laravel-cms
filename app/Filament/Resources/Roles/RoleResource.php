@@ -24,9 +24,10 @@ class RoleResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
-    public static function getNavigationGroup(): ?string
+    /** Geridos dentro do modal de Settings → fora da sidebar. */
+    public static function shouldRegisterNavigation(): bool
     {
-        return __('Permissions');
+        return false;
     }
 
     public static function getNavigationLabel(): string
@@ -46,7 +47,7 @@ class RoleResource extends Resource
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->hasAnyRole(['admin', 'developer']) ?? false;
     }
 
     public static function form(Schema $schema): Schema

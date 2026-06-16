@@ -2,16 +2,19 @@
 
 namespace Database\Seeders;
 
+use App\Models\Cms\Menu;
+use App\Models\Cms\Page;
 use App\Models\User;
 use App\Services\Cms\PagePublisher;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
 class CmsSeeder extends Seeder
 {
     public function run(): void
     {
-        foreach (['admin', 'publisher', 'editor'] as $role) {
+        foreach (['admin', 'publisher', 'editor', 'developer'] as $role) {
             Role::findOrCreate($role);
         }
 
@@ -23,7 +26,7 @@ class CmsSeeder extends Seeder
 
         // Homepage de exemplo por locale, já publicada.
         foreach (config('cms.locales') as $locale) {
-            $home = \App\Models\Cms\Page::query()->firstOrCreate(
+            $home = Page::query()->firstOrCreate(
                 ['slug' => config('cms.home_slug'), 'locale' => $locale, 'parent_id' => null],
                 ['name' => 'Home '.strtoupper($locale), 'template' => 'default'],
             );
@@ -31,7 +34,7 @@ class CmsSeeder extends Seeder
             if (! $home->isPublished()) {
                 app(PagePublisher::class)->saveDraft($home, ['blocks' => [
                     [
-                        'id' => (string) \Illuminate\Support\Str::uuid(),
+                        'id' => (string) Str::uuid(),
                         'block' => 'hero',
                         'values' => [
                             'title' => $locale === 'de' ? 'Willkommen' : 'Welcome',
@@ -46,12 +49,12 @@ class CmsSeeder extends Seeder
         }
 
         // Menu principal de exemplo, ligado às homepages por id (sobrevive a renames).
-        $homeDe = \App\Models\Cms\Page::query()
+        $homeDe = Page::query()
             ->where('locale', config('cms.default_locale'))
             ->where('slug', config('cms.home_slug'))
             ->first();
 
-        \App\Models\Cms\Menu::query()->firstOrCreate(
+        Menu::query()->firstOrCreate(
             ['slug' => 'main'],
             [
                 'name' => 'Menu Principal',

@@ -6,6 +6,7 @@ use App\Filament\Resources\Users\Pages\CreateUser;
 use App\Filament\Resources\Users\Pages\EditUser;
 use App\Filament\Resources\Users\Pages\ListUsers;
 use App\Models\User;
+use App\Support\Locales;
 use BackedEnum;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -45,10 +46,10 @@ class UserResource extends Resource
         return __('users');
     }
 
-    /** Gestão de utilizadores é exclusiva de admins. */
+    /** Gestão de utilizadores: admins e developers. */
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->hasAnyRole(['admin', 'developer']) ?? false;
     }
 
     public static function form(Schema $schema): Schema
@@ -80,8 +81,8 @@ class UserResource extends Resource
                     ->preload(),
                 Select::make('locale')
                     ->label(__('Panel language'))
-                    ->options(\App\Support\Locales::options())
-                    ->placeholder(__('Site default').' ('.\App\Support\Locales::default().')')
+                    ->options(Locales::options())
+                    ->placeholder(__('Site default').' ('.Locales::default().')')
                     ->native(false)
                     ->helperText(__('The language this user sees the panel in.')),
             ]),

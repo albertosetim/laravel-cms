@@ -45,7 +45,7 @@ class ContentTypeResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('System');
+        return __('Developer tools');
     }
 
     public static function getNavigationLabel(): string

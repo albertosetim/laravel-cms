@@ -12,6 +12,7 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Contracts\Pagination\Paginator;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Spatie\Activitylog\Models\Activity;
@@ -31,7 +32,7 @@ class SystemLogs extends Page implements HasTable
 
     public static function getNavigationGroup(): ?string
     {
-        return __('System');
+        return __('Developer tools');
     }
 
     public static function getNavigationLabel(): string
@@ -39,7 +40,7 @@ class SystemLogs extends Page implements HasTable
         return __('Logs');
     }
 
-    public function getTitle(): string|\Illuminate\Contracts\Support\Htmlable
+    public function getTitle(): string|Htmlable
     {
         return __('Logs');
     }

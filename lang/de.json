@@ -23,6 +23,7 @@
     "Defined in config/cms.php — routing needs them before any DB query.": "In config/cms.php definiert – das Routing benötigt sie vor jeder DB-Abfrage.",
     "Description": "Beschreibung",
     "Destination": "Ziel",
+    "Developer tools": "Entwicklerwerkzeuge",
     "Distributes the blocks across columns. Each block chooses its column.": "Verteilt die Blöcke auf Spalten. Jeder Block wählt seine Spalte.",
     "Draft": "Entwurf",
     "Each field becomes a typed column in the generated table.": "Jedes Feld wird zu einer typisierten Spalte in der generierten Tabelle.",

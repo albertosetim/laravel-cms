@@ -1,6 +1,7 @@
 <?php
 
-use App\Filament\Pages\Settings as SettingsPage;
+use App\Filament\Livewire\SettingsModal;
+use App\Models\Cms\Setting;
 use App\Models\User;
 use App\Support\Settings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -11,21 +12,27 @@ uses(RefreshDatabase::class);
 
 beforeEach(fn () => Cache::flush());
 
-it('só admins acedem à página de settings', function () {
+it('só admins acedem ao modal de settings e gravam', function () {
     Role::findOrCreate('admin');
     Role::findOrCreate('editor');
 
-    $url = SettingsPage::getUrl();
-
-    $this->get($url)->assertRedirect(route('filament.admin.auth.login'));
-
+    // Editor: o mount() aborta 403.
     $editor = User::factory()->create();
     $editor->assignRole('editor');
-    $this->actingAs($editor)->get($url)->assertForbidden();
+    Livewire::actingAs($editor)->test(SettingsModal::class)->assertForbidden();
 
+    // Admin: monta, edita e grava → persiste nas general settings.
     $admin = User::factory()->create();
     $admin->assignRole('admin');
-    $this->actingAs($admin)->get($url)->assertOk();
+
+    Livewire::actingAs($admin)->test(SettingsModal::class)
+        ->set('data.site_name', 'Cliente XPTO')
+        ->set('data.contact_email', 'info@web-crossing.com')
+        ->set('data.timezone', 'Europe/Vienna')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect(Settings::general()->get('site_name'))->toBe('Cliente XPTO');
 });
 
 it('cai para os defaults do .env quando a DB está vazia', function () {
@@ -37,7 +44,7 @@ it('persiste e lê de volta o que foi gravado', function () {
     Settings::general()->set('site_name', 'Cliente XPTO');
 
     expect(Settings::general()->get('site_name'))->toBe('Cliente XPTO')
-        ->and(\App\Models\Cms\Setting::where('settable_type', 'general')->where('key', 'site_name')->exists())->toBeTrue();
+        ->and(Setting::where('settable_type', 'general')->where('key', 'site_name')->exists())->toBeTrue();
 });
 
 it('liga o modo manutenção só para visitantes anónimos', function () {

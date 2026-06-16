@@ -10,6 +10,7 @@ use App\Models\Cms\Page;
 use App\Models\User;
 use App\Policies\Cms\ContentTypePolicy;
 use App\Policies\Cms\PagePolicy;
+use App\Support\Settings;
 use App\View\Components\Cms\Block;
 use App\View\Components\Cms\Blocks;
 use App\View\Components\Cms\Field;
@@ -33,6 +34,9 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(Page::class, PagePolicy::class);
         Gate::policy(ContentType::class, ContentTypePolicy::class);
+
+        // admin e developer são super-roles: passam todas as policies/gates.
+        Gate::before(fn (User $user) => $user->hasAnyRole(['admin', 'developer']) ? true : null);
 
         // Acesso aos System Logs (storage/logs) restrito a administradores.
         Gate::define('viewSystemLogs', fn (User $user) => $user->hasRole('admin'));
@@ -59,7 +63,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         try {
-            if ($tz = \App\Support\Settings::general()->get('timezone')) {
+            if ($tz = Settings::general()->get('timezone')) {
                 date_default_timezone_set($tz);
                 config(['app.timezone' => $tz]);
             }

@@ -30,7 +30,7 @@ it('só admins acedem à página de settings', function () {
 
 it('cai para os defaults do .env quando a DB está vazia', function () {
     expect(Settings::general()->get('site_name'))->toBe(config('settings.defaults.site_name'))
-        ->and(Settings::general()->get('contact_email'))->toBe('info@web-crossing.com');
+        ->and(Settings::general()->get('contact_email'))->toBe('info@example.com');
 });
 
 it('persiste e lê de volta o que foi gravado', function () {

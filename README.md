@@ -103,9 +103,9 @@ values and fallbacks come from `.env`:
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `SETTINGS_SITE_NAME` | `web-crossing CMS` | Site name |
-| `SETTINGS_CONTACT_EMAIL` | `info@web-crossing.com` | Contact email |
-| `SETTINGS_CONTACT_PHONE` | `+43 512 206567` | Contact phone |
+| `SETTINGS_SITE_NAME` | `Laravel CMS` | Site name |
+| `SETTINGS_CONTACT_EMAIL` | `info@example.com` | Contact email |
+| `SETTINGS_CONTACT_PHONE` | _(empty)_ | Contact phone |
 | `SETTINGS_TIMEZONE` | `Europe/Vienna` | Application timezone |
 | `SETTINGS_MAINTENANCE_MODE` | `false` | Public maintenance mode |
 

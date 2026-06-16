@@ -12,9 +12,9 @@ return [
     */
 
     'defaults' => [
-        'site_name' => env('SETTINGS_SITE_NAME', 'web-crossing CMS'),
-        'contact_email' => env('SETTINGS_CONTACT_EMAIL', 'info@web-crossing.com'),
-        'contact_phone' => env('SETTINGS_CONTACT_PHONE', '+43 512 206567'),
+        'site_name' => env('SETTINGS_SITE_NAME', 'Laravel CMS'),
+        'contact_email' => env('SETTINGS_CONTACT_EMAIL', 'info@example.com'),
+        'contact_phone' => env('SETTINGS_CONTACT_PHONE', ''),
         'timezone' => env('SETTINGS_TIMEZONE', env('APP_TIMEZONE', 'Europe/Vienna')),
         'maintenance_mode' => (bool) env('SETTINGS_MAINTENANCE_MODE', false),
     ],
